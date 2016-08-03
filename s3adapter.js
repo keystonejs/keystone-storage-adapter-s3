@@ -30,9 +30,13 @@ var sanitize = require('sanitize-filename');
 function S3Adapter (options, schema) {
 	this.client = knox.createClient(options.s3);
 	this.options = options;
+	if (!options.s3) {
+		throw Error('Configuration error: Missing options.s3');
+	}
 	var path = options.s3.path;
-	if (!pathlib.isAbsolute(path)) throw Error('Configuration error: S3 path must be absolute');
-	console.log('options', this.options);
+	if (path != null && !pathlib.isAbsolute(path)) {
+		throw Error('Configuration error: S3 path must be absolute');
+	}
 }
 
 S3Adapter.compatibilityLevel = 1;
@@ -68,10 +72,13 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 	this.options.generateFilename(file, 0, function (err, filename) {
 		if (err) return callback(err);
 
-		var fullpath = self._resolveFilename(file);
+		// The expanded path of the file on the filesystem.
+		var localpath = file.path;
 
-		// Upload the file
-		debug('Uploading file %s', filename);
+		// The destination path inside the S3 bucket.
+		file.path = self.options.s3.path;
+		file.filename = filename;
+		var destpath = self._resolveFilename(file);
 
 		// Figure out headers
 		var headers = assign({}, self.options.s3.defaultHeaders, {
@@ -79,7 +86,8 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			'Content-Type': file.mimetype,
 		});
 
-		self.client.putFile(file.path, fullpath, headers, function (err, res) {
+		debug('Uploading file %s', filename);
+		self.client.putFile(localpath, destpath, headers, function (err, res) {
 			if (err) return callback(err);
 			if (res.statusCode !== 200) {
 				return callback(new Error('Amazon returned status code: ' + res.statusCode));

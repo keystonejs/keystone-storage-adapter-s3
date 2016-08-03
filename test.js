@@ -14,7 +14,9 @@ describe('s3 file field', function () {
 			key: process.env.S3_KEY,
 			secret: process.env.S3_SECRET,
 			bucket: process.env.S3_BUCKET,
-			acl: 'public-read',
+			defaultHeaders: {
+				'x-amz-acl': 'public-read',
+			},
 		},
 	}, {
 		filename: true,
