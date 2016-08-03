@@ -7,26 +7,14 @@ var pathlib = require('path');
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 
-/* Allowed options. For more documentation check the readme file.
-  {s3: {
-		key, // required
-		secret, // required
-		bucket, // required
-		region, // (default: 'us-standard'). Eg 'us-west-2'.
-		defaultHeaders: {
-			// default headers set when uploading. See http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html
-			Useful headers:
-			x-amz-acl // canned x-amz-acl value. Defaults 'private'. Eg, 'public-read' to make your uploaded files publically readable. Its better to just make a public bucket if you want everything to be public.
-			content-disposition // Default disposition with which to download files. See http://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.5.1 .
-		},
-		style, // see https://www.npmjs.com/package/knox#style
-		path, // Path inside the bucket, so you can put your files in a 'subdirectory' in the bucket. If specified it must be absolute.
-	}
-*/
-
-/* Extra schema fields: path, bucket, etag */
-
-
+// This constructor is usually called indirectly by the Storage class in
+// keystone.
+// S3-specific options should be specified in an `options.s3` field, which can
+// contain the following options: {key, secret, bucket, region, defaultHeaders, style, path}.
+//
+// The schema can contain the additional fields {path, bucket, etag}.
+//
+// See README.md for details and usage examples.
 function S3Adapter (options, schema) {
 	this.client = knox.createClient(options.s3);
 	this.options = options;
