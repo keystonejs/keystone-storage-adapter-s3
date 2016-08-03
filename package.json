@@ -4,16 +4,17 @@
   "description": "S3 file adapter for keystonejs",
   "main": "s3adapter.js",
   "scripts": {
-    "test": "mocha test.js"
+    "test": "eslint . && mocha test.js"
   },
   "author": "Joseph Gentle <me@josephg.com>",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "knox": "^0.9.2",
     "object-assign": "^4.1.0",
     "sanitize-filename": "^1.6.0"
   },
   "devDependencies": {
-    "dotenv": "^2.0.0"
+    "dotenv": "^2.0.0",
+    "eslint": "^3.2.2"
   }
 }

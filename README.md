@@ -32,3 +32,13 @@ The S3 adapter supports all the standard Keystone file schema fields. It also su
 The main use of this is to allow slow data migrations. If you *don't* store these values you can arguably migrate your data more easily - just move it all, then reconfigure and restart your server.
 
 - **etag**: The etag of the stored item. This is equal to the MD5 sum of the file content.
+
+
+# Migrating from keystone 0.3
+
+The fields have been structured to make the new type mostly-compatible with the old keystone s3 field field. The only difference is that `filetype` has been renamed to `mimetype`.
+
+
+# License
+
+Licensed under the standard MIT license. See [LICENSE](license).

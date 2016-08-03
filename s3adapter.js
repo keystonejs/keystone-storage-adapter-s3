@@ -1,11 +1,11 @@
-// The S3 adapter class.
+// The keystone S3 adapter class. See README.md for usage.
+// This class is a simple wrapper around knox
 var knox = require('knox');
+
 var pathlib = require('path');
-// Keystone 0.4 still supports node 0.12. </3.
+// Mirroring keystone 0.4's support of node 0.12.
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
-
-var sanitize = require('sanitize-filename');
 
 /* Allowed options. For more documentation check the readme file.
   {s3: {
@@ -119,9 +119,10 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 };
 
 // Note that this will provide a public URL for the file, but it will only
-// work if the bucket is public, the file is set to a canned ACL
-// (ie, options:{ s3:{ acl:'public-read'} } ) or if you pass credentials during
-// your request for the file.
+// work if:
+// - the bucket is public (best) or
+// - the file is set to a canned ACL (ie, headers:{ 'x-amz-acl': 'public-read' } )
+// - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
 	// Consider providing an option to use insecure http. I can't think of any
 	// sensible use case for plain http though. https should be used everywhere.
@@ -135,7 +136,7 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 		// Deletes return 204 according to the spec, but we'll allow 200 too:
 		// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectDELETE.html
 		if (res.statusCode !== 200 && res.statusCode !== 204) {
-			return callback('Amazon returned status code ' + res.statusCode);
+			return callback(Error('Amazon returned status code ' + res.statusCode));
 		}
 		res.resume(); // Discard the body
 		callback();
