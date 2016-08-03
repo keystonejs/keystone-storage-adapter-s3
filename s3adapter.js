@@ -7,6 +7,12 @@ var pathlib = require('path');
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 
+var defaultS3Options = {
+	key: process.env.S3_KEY,
+	secret: process.env.S3_SECRET,
+	bucket: process.env.S3_BUCKET,
+};
+
 // This constructor is usually called indirectly by the Storage class in
 // keystone.
 // S3-specific options should be specified in an `options.s3` field, which can
@@ -16,11 +22,13 @@ var debug = require('debug')('keystone-s3');
 //
 // See README.md for details and usage examples.
 function S3Adapter (options, schema) {
-	this.client = knox.createClient(options.s3);
-	this.options = options;
-	if (!options.s3) {
-		throw Error('Configuration error: Missing options.s3');
-	}
+	var s3Options = assign({}, defaultS3Options, options.s3);
+	this.options = assign({}, options, { s3: s3Options });
+
+	// Knox will check for the 'key', 'secret' and 'bucket' options.
+	this.client = knox.createClient(this.options.s3);
+
+	// If path is specified it must be absolute.
 	var path = options.s3.path;
 	if (path != null && !pathlib.isAbsolute(path)) {
 		throw Error('Configuration error: S3 path must be absolute');
