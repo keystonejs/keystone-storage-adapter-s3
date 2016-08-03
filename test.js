@@ -2,7 +2,7 @@
 
 // Pull in S3 key, S3 secret and S3 bucket from .env
 require('dotenv').config();
-const S3Adapter = require('./s3adapter');
+const S3Adapter = require('./index');
 
 describe('s3 file field', function () {
 	beforeEach(function () {

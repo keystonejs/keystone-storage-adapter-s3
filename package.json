@@ -2,9 +2,10 @@
   "name": "keystone-s3",
   "version": "0.0.1",
   "description": "S3 file adapter for keystonejs",
-  "main": "s3adapter.js",
+  "main": "index.js",
   "scripts": {
-    "test": "eslint . && mocha test.js"
+    "test": "eslint . && mocha test.js",
+    "lint": "eslint ."
   },
   "author": "Joseph Gentle <me@josephg.com>",
   "license": "MIT",
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "dotenv": "^2.0.0",
-    "eslint": "^3.2.2"
+    "eslint": "^3.2.2",
+    "mocha": "^3.0.0"
   }
 }
