@@ -7,7 +7,7 @@ var debug = require('debug')('keystone-s3');
 
 var sanitize = require('sanitize-filename');
 
-/* Allowed options:
+/* Allowed options. For more documentation check the readme file.
   {s3: {
 		key, // required
 		secret, // required
@@ -44,7 +44,7 @@ S3Adapter.prototype._knoxForFile = function (file) {
 	// in another bucket. The knox client is configured per-bucket, so if you're
 	// using multiple buckets we'll need a different knox client for each file.
 	if (file.bucket && file.bucket !== this.options.s3.bucket) {
-		const s3options = assign({}, this.options.s3, { bucket: file.bucket });
+		var s3options = assign({}, this.options.s3, { bucket: file.bucket });
 		return knox.createClient(s3options);
 	} else {
 		return this.client;
@@ -74,7 +74,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		debug('Uploading file %s', filename);
 
 		// Figure out headers
-		const headers = assign({}, self.options.s3.defaultHeaders, {
+		var headers = assign({}, self.options.s3.defaultHeaders, {
 			'Content-Length': file.size,
 			'Content-Type': file.mimetype,
 		});
@@ -121,7 +121,7 @@ S3Adapter.prototype.getFileURL = function (file) {
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
-	const fullpath = this._resolveFilename(file);
+	var fullpath = this._resolveFilename(file);
 	this._knoxForFile(file).deleteFile(fullpath, function (err, res) {
 		if (err) return callback(err);
 		// Deletes return 204 according to the spec, but we'll allow 200 too:
