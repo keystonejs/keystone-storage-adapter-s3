@@ -2,7 +2,37 @@ This project contains the keystone S3 file adapter. This adapter replaces the ex
 
 ## Usage
 
-TODO: write me.
+Configure the storage adapter:
+
+```javascript
+var storage = new keystone.Storage({
+	adapter: require('keystone-storage-adapter-s3'),
+	s3: {
+    key: process.env.S3_KEY, // these 3 settings all default to these environment variables
+    secret: process.env.S3_SECRET,
+    bucket: process.env.S3_BUCKET,
+    path: '/profilepics',
+    defaultHeaders: {
+      'x-amz-acl': 'public-read', // Etc. See docs for details
+    },
+	},
+  schema: {
+    url: true, // Optional - generate & store a public URL
+    etag: true, // optional - store the etag for the resource
+    path: true, // optional - store the path and bucket in your db. See below.
+    bucket: true,
+  },
+});
+```
+
+Then use it in your file type:
+
+```javascript
+File.add({
+	name: { type: String },
+	file: { type: Types.File, storage: storage, required: true, initial: true },
+});
+```
 
 ### Options:
 
