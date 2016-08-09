@@ -86,12 +86,12 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		var localpath = file.path;
 
 		// The destination path inside the S3 bucket.
-		file.path = self.options.s3.path;
+		file.path = self.options.path;
 		file.filename = filename;
 		var destpath = self._resolveFilename(file);
 
 		// Figure out headers
-		var headers = assign({}, self.options.s3.defaultHeaders, {
+		var headers = assign({}, self.options.defaultHeaders, {
 			'Content-Length': file.size,
 			'Content-Type': file.mimetype,
 		});
@@ -119,8 +119,8 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			// bucket. This means you can do slow data migrations. Note that if you
 			// *don't* store these values you can arguably migrate your data more
 			// easily - just move it all, reconfigure and restart your server.
-			file.path = self.options.s3.path;
-			file.bucket = self.options.s3.bucket;
+			file.path = self.options.path;
+			file.bucket = self.options.bucket;
 
 			debug('file upload successful');
 			callback(null, file);
