@@ -6,8 +6,8 @@ Configure the storage adapter:
 
 ```javascript
 var storage = new keystone.Storage({
-	adapter: require('keystone-storage-adapter-s3'),
-	s3: {
+  adapter: require('keystone-storage-adapter-s3'),
+  s3: {
     key: process.env.S3_KEY, // these 3 settings all default to these environment variables
     secret: process.env.S3_SECRET,
     bucket: process.env.S3_BUCKET,
@@ -15,7 +15,7 @@ var storage = new keystone.Storage({
     defaultHeaders: {
       'x-amz-acl': 'public-read', // Etc. See docs for details
     },
-	},
+  },
   schema: {
     url: true, // Optional - generate & store a public URL
     etag: true, // optional - store the etag for the resource
@@ -29,8 +29,8 @@ Then use it in your file type:
 
 ```javascript
 File.add({
-	name: { type: String },
-	file: { type: Types.File, storage: storage, required: true, initial: true },
+  name: { type: String },
+  file: { type: Types.File, storage: storage, required: true, initial: true },
 });
 ```
 
