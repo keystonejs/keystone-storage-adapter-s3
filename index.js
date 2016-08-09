@@ -38,6 +38,21 @@ function S3Adapter (options, schema) {
 
 S3Adapter.compatibilityLevel = 1;
 
+// All the extra schema fields supported by this adapter.
+S3Adapter.SCHEMA_TYPES = {
+	filename: String,
+	bucket: String,
+	path: String,
+	etag: String,
+};
+
+S3Adapter.SCHEMA_FIELD_DEFAULTS = {
+	filename: true,
+	bucket: false,
+	path: false,
+	etag: false,
+};
+
 // Return a knox client configured to interact with the specified file.
 S3Adapter.prototype._knoxForFile = function (file) {
 	// Clients are allowed to store the bucket name in the file structure. If they
