@@ -16,9 +16,10 @@ var defaultS3Options = {
 // This constructor is usually called indirectly by the Storage class in
 // keystone.
 // S3-specific options should be specified in an `options.s3` field, which can
-// contain the following options: {key, secret, bucket, region, defaultHeaders, style, path}.
+// contain the following options: { key, secret, bucket, region, defaultHeaders,
+// style, path }.
 //
-// The schema can contain the additional fields {path, bucket, etag}.
+// The schema can contain the additional fields { path, bucket, etag }.
 //
 // See README.md for details and usage examples.
 function S3Adapter (options, schema) {

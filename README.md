@@ -1,3 +1,7 @@
+# S3-based storage adapter for KeystoneJS
+
+This adapter is designed to replace the existing `S3File` field in KeystoneJS using the new storage API.
+
 This project contains the keystone S3 file adapter. This adapter replaces the existing S3 file field, using the new keystone storage adapter class.
 
 ## Usage
@@ -17,7 +21,7 @@ var storage = new keystone.Storage({
     },
   },
   schema: {
-    url: true, // Optional - generate & store a public URL
+    url: true, // optional - generate & store a public URL
     etag: true, // optional - store the etag for the resource
     path: true, // optional - store the path and bucket in your db. See below.
     bucket: true,
