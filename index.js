@@ -1,14 +1,22 @@
-var knox = require('knox');
+/*
+TODO
+- Check whether files exist before uploading (will always overwrite as-is)
+- Support multiple retry attempts if a file exists (see FS Adapter)
+*/
 
-var pathlib = require('path');
 // Mirroring keystone 0.4's support of node 0.12.
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
+var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
+var knox = require('knox');
+var nameFunctions = require('keystone-storage-namefunctions');
+var pathlib = require('path');
 
 var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
 	secret: process.env.S3_SECRET,
 	bucket: process.env.S3_BUCKET,
+	generateFilename: nameFunctions.randomFilename,
 };
 
 // This constructor is usually called indirectly by the Storage class in
@@ -32,6 +40,9 @@ function S3Adapter (options, schema) {
 	if (options.path != null && !pathlib.isAbsolute(options.path)) {
 		throw Error('Configuration error: S3 path must be absolute');
 	}
+
+	// Ensure the generateFilename option takes a callback
+	this.options.generateFilename = ensureCallback(this.options.generateFilename);
 }
 
 S3Adapter.compatibilityLevel = 1;
@@ -77,8 +88,6 @@ S3Adapter.prototype._resolveFilename = function (file) {
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
 	var self = this;
-	// TODO: Chat to Jed to decide how to share the generateFilename code from the
-	// keystone Storage class.
 	this.options.generateFilename(file, 0, function (err, filename) {
 		if (err) return callback(err);
 
