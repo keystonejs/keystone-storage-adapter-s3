@@ -5,7 +5,7 @@ var pathlib = require('path');
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 
-var defaultS3Options = {
+var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
 	secret: process.env.S3_SECRET,
 	bucket: process.env.S3_BUCKET,
@@ -23,15 +23,13 @@ var defaultS3Options = {
 // See README.md for details and usage examples.
 
 function S3Adapter (options, schema) {
-	var s3Options = assign({}, defaultS3Options, options.s3);
-	this.options = assign({}, options, { s3: s3Options });
+	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	// Knox will check for the 'key', 'secret' and 'bucket' options.
-	this.client = knox.createClient(this.options.s3);
+	this.client = knox.createClient(this.options);
 
 	// If path is specified it must be absolute.
-	var path = options.s3.path;
-	if (path != null && !pathlib.isAbsolute(path)) {
+	if (options.path != null && !pathlib.isAbsolute(options.path)) {
 		throw Error('Configuration error: S3 path must be absolute');
 	}
 }
@@ -59,8 +57,8 @@ S3Adapter.prototype._knoxForFile = function (file) {
 	// do it'll make it possible to have some files in one bucket and some files
 	// in another bucket. The knox client is configured per-bucket, so if you're
 	// using multiple buckets we'll need a different knox client for each file.
-	if (file.bucket && file.bucket !== this.options.s3.bucket) {
-		var s3options = assign({}, this.options.s3, { bucket: file.bucket });
+	if (file.bucket && file.bucket !== this.options.bucket) {
+		var s3options = assign({}, this.options, { bucket: file.bucket });
 		return knox.createClient(s3options);
 	} else {
 		return this.client;
@@ -73,7 +71,7 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// isn't stored we'll assume all the files are in the path specified in the
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
-	var path = file.path || this.options.s3.path || '/';
+	var path = file.path || this.options.path || '/';
 	return pathlib.resolve(path, file.filename);
 };
 
