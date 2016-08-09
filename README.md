@@ -2,47 +2,45 @@
 
 This adapter is designed to replace the existing `S3File` field in KeystoneJS using the new storage API.
 
-This project contains the keystone S3 file adapter. This adapter replaces the existing S3 file field, using the new keystone storage adapter class.
+Compatible with Node.js 0.12+
 
 ## Usage
 
 Configure the storage adapter:
 
-```javascript
+```js
 var storage = new keystone.Storage({
   adapter: require('keystone-storage-adapter-s3'),
   s3: {
-    key: process.env.S3_KEY, // these 3 settings all default to these environment variables
-    secret: process.env.S3_SECRET,
-    bucket: process.env.S3_BUCKET,
+    key: 's3-key', // required; defaults to process.env.S3_KEY
+    secret: 'secret', // required; defaults to process.env.S3_SECRET
+    bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     path: '/profilepics',
     defaultHeaders: {
-      'x-amz-acl': 'public-read', // Etc. See docs for details
+      'x-amz-acl': 'public-read', // add default headers; see below for details
     },
   },
   schema: {
-    url: true, // optional - generate & store a public URL
-    etag: true, // optional - store the etag for the resource
-    path: true, // optional - store the path and bucket in your db. See below.
-    bucket: true,
+    bucket: true, // optional; store the bucket the file was uploaded to in your db
+    etag: true, // optional; store the etag for the resource
+    path: true, // optional; store the path of the file in your db
+    url: true, // optional; generate & store a public URL
   },
 });
 ```
 
-Then use it in your file type:
+Then use it as the storage provider for a File field:
 
-```javascript
+```js
 File.add({
   name: { type: String },
-  file: { type: Types.File, storage: storage, required: true, initial: true },
+  file: { type: Types.File, storage: storage },
 });
 ```
 
 ### Options:
 
-The adapter requires an additional `s3` field added to the storage options. Only `key`, `secret` and `bucket` are required.
-
-It accepts the following values:
+The adapter requires an additional `s3` field added to the storage options. It accepts the following values:
 
 - **key**: *(required)* AWS access key. Configure your AWS credentials in the [IAM console](https://console.aws.amazon.com/iam/home?region=ap-southeast-2#home).
 
@@ -61,16 +59,11 @@ It accepts the following values:
 
 The S3 adapter supports all the standard Keystone file schema fields. It also supports storing the following values per-file:
 
-- **path, bucket**: The path and bucket at which the file is stored in the database. If these are present when reading or deleting files, they will be used instead of looking at the global S3Adapter configuration. The effect of this is that you can have some (eg, old) files in your collection stored in different bucket / different path inside your bucket.
+- **bucket**, **path**: The bucket, and path within the bucket, for the file can be is stored in the database. If these are present when reading or deleting files, they will be used instead of looking at the adapter configuration. The effect of this is that you can have some (eg, old) files in your collection stored in different bucket / different path inside your bucket.
 
 The main use of this is to allow slow data migrations. If you *don't* store these values you can arguably migrate your data more easily - just move it all, then reconfigure and restart your server.
 
 - **etag**: The etag of the stored item. This is equal to the MD5 sum of the file content.
-
-
-# Migrating from keystone 0.3
-
-The fields have been structured to make the new type mostly-compatible with the old keystone s3 field field. The only difference is that `filetype` has been renamed to `mimetype`.
 
 
 # License

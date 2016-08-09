@@ -1,5 +1,3 @@
-// The keystone S3 adapter class. See README.md for usage.
-// This class is a simple wrapper around knox
 var knox = require('knox');
 
 var pathlib = require('path');
@@ -15,13 +13,15 @@ var defaultS3Options = {
 
 // This constructor is usually called indirectly by the Storage class in
 // keystone.
+
 // S3-specific options should be specified in an `options.s3` field, which can
 // contain the following options: { key, secret, bucket, region, defaultHeaders,
 // style, path }.
-//
+
 // The schema can contain the additional fields { path, bucket, etag }.
-//
+
 // See README.md for details and usage examples.
+
 function S3Adapter (options, schema) {
 	var s3Options = assign({}, defaultS3Options, options.s3);
 	this.options = assign({}, options, { s3: s3Options });
