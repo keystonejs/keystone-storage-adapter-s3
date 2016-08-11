@@ -162,4 +162,16 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 	});
 };
 
+// Check if a file with the specified filename already exists. Callback called
+// with the file headers if the file exists, null otherwise.
+S3Adapter.prototype.fileExists = function (filename, callback) {
+	var fullpath = this._resolveFilename({ filename: filename });
+	this.client.headFile(fullpath, function (err, res) {
+		if (err) return callback(err);
+
+		if (res.statusCode === 404) return callback(); // File does not exist
+		callback(null, res.headers);
+	});
+};
+
 module.exports = S3Adapter;
