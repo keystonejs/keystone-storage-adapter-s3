@@ -19,12 +19,12 @@ var DEFAULT_OPTIONS = {
 	generateFilename: nameFunctions.randomFilename,
 };
 
-// This constructor is usually called indirectly by the Storage class in
-// keystone.
+// This constructor is usually called indirectly by the Storage class
+// in keystone.
 
-// S3-specific options should be specified in an `options.s3` field, which can
-// contain the following options: { key, secret, bucket, region, defaultHeaders,
-// style, path }.
+// S3-specific options should be specified in an `options.s3` field,
+// which can contain the following options: { key, secret, bucket, region,
+// headers, path }.
 
 // The schema can contain the additional fields { path, bucket, etag }.
 
@@ -32,6 +32,12 @@ var DEFAULT_OPTIONS = {
 
 function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
+
+	// Support `defaultHeaders` option alias for `headers`
+	// TODO: Remove me with the next major version bump
+	if (this.options.defaultHeaders) {
+		this.options.headers = this.options.defaultHeaders;
+	}
 
 	// Knox will check for the 'key', 'secret' and 'bucket' options.
 	this.client = knox.createClient(this.options);
@@ -100,7 +106,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		var destpath = self._resolveFilename(file);
 
 		// Figure out headers
-		var headers = assign({}, self.options.defaultHeaders, {
+		var headers = assign({}, self.options.headers, {
 			'Content-Length': file.size,
 			'Content-Type': file.mimetype,
 		});
