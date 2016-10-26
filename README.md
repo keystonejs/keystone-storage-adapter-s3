@@ -15,6 +15,7 @@ var storage = new keystone.Storage({
     key: 's3-key', // required; defaults to process.env.S3_KEY
     secret: 'secret', // required; defaults to process.env.S3_SECRET
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
+    region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics',
     headers: {
       'x-amz-acl': 'public-read', // add default headers; see below for details
