@@ -99,7 +99,7 @@ S3Adapter.prototype.uploadFile = function (file, item, callback) {
     item = {};
   }
 
-	this.options.generateFilename(file, item, function (err, filename) {
+	this.options.generateFilename(file, 0, item, function (err, filename) {
 		if (err) return callback(err);
 
 		// The expanded path of the file on the filesystem.
