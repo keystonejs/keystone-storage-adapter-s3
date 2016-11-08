@@ -98,6 +98,7 @@ S3Adapter.prototype.uploadFile = function (file, item, callback) {
     callback = item;
     item = {};
   }
+
 	this.options.generateFilename(file, item, function (err, filename) {
 		if (err) return callback(err);
 
