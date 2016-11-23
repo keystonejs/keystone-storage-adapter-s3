@@ -16,6 +16,7 @@ var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
 	secret: process.env.S3_SECRET,
 	bucket: process.env.S3_BUCKET,
+	region: process.env.S3_REGION || 'us-east-1',
 	generateFilename: nameFunctions.randomFilename,
 };
 
