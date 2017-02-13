@@ -8,15 +8,16 @@ TODO
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
-var knox = require('knox');
+var AWS = require('aws-sdk');
 var nameFunctions = require('keystone-storage-namefunctions');
 var pathlib = require('path');
+var fs = require('fs');
 
 var DEFAULT_OPTIONS = {
-	key: process.env.S3_KEY,
-	secret: process.env.S3_SECRET,
-	bucket: process.env.S3_BUCKET,
-	region: process.env.S3_REGION || 'us-east-1',
+	accessKeyId: process.env.S3_KEY || process.env.AWS_ACCESS_KEY_ID,
+	secretAccessKey: process.env.S3_SECRET || process.env.AWS_SECRET_ACCESS_KEY,
+	region: process.env.S3_REGION || process.env.AWS_REGION,
+	bucket: process.env.S3_BUCKET || 'us-standard',
 	generateFilename: nameFunctions.randomFilename,
 };
 
@@ -34,14 +35,16 @@ var DEFAULT_OPTIONS = {
 function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
-	// Support `defaultHeaders` option alias for `headers`
-	// TODO: Remove me with the next major version bump
-	if (this.options.defaultHeaders) {
-		this.options.headers = this.options.defaultHeaders;
-	}
-
-	// Knox will check for the 'key', 'secret' and 'bucket' options.
-	this.client = knox.createClient(this.options);
+	this.client = new AWS.S3({
+		params: {
+			// included in every call, but may be overriden
+			Bucket: this.options.bucket,
+			ACL: this.options.acl,
+		},
+		accessKeyId: this.options.accessKeyId,
+		secretAccessKey: this.options.secretAccessKey,
+		region: this.options.region,
+	});
 
 	// If path is specified it must be absolute.
 	if (options.path != null && !pathlib.isAbsolute(options.path)) {
@@ -69,20 +72,6 @@ S3Adapter.SCHEMA_FIELD_DEFAULTS = {
 	etag: false,
 };
 
-// Return a knox client configured to interact with the specified file.
-S3Adapter.prototype._knoxForFile = function (file) {
-	// Clients are allowed to store the bucket name in the file structure. If they
-	// do it'll make it possible to have some files in one bucket and some files
-	// in another bucket. The knox client is configured per-bucket, so if you're
-	// using multiple buckets we'll need a different knox client for each file.
-	if (file.bucket && file.bucket !== this.options.bucket) {
-		var s3options = assign({}, this.options, { bucket: file.bucket });
-		return knox.createClient(s3options);
-	} else {
-		return this.client;
-	}
-};
-
 // Get the full, absolute path name for the specified file.
 S3Adapter.prototype._resolveFilename = function (file) {
 	// Just like the bucket, the schema can store the path for files. If the path
@@ -104,27 +93,24 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var destpath = self._resolveFilename(file);
+		var destpath = self._resolveFilename(file).slice(1); // no preseding / for this s3 client
 
-		// Figure out headers
-		var headers = assign({}, self.options.headers, {
-			'Content-Length': file.size,
-			'Content-Type': file.mimetype,
-		});
+		var params = {
+			ContentLength: file.size,
+			ContentType: file.mimetype,
+			Body: fs.readFileSync(localpath),
+			Key: destpath,
+		};
 
 		debug('Uploading file %s', filename);
-		self.client.putFile(localpath, destpath, headers, function (err, res) {
-			if (err) return callback(err);
-			if (res.statusCode !== 200) {
-				return callback(new Error('Amazon returned status code: ' + res.statusCode));
-			}
-			res.resume(); // Discard (empty) body.
+		self.client.putObject(params, function (err, data) {
+			if (err) return callback(new Error('AWS.S3#putObject failed: ' + err.message));
 
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
 			// set.
 			file.filename = filename;
-			file.etag = res.headers.etag; // TODO: This etag is double-quoted (??why?)
+			file.etag = data.ETag;
 
 			// file.url is automatically populated by keystone's Storage class so we
 			// don't need to set it here.
@@ -150,9 +136,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - the file is set to a canned ACL (ie, headers:{ 'x-amz-acl': 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
-	// Consider providing an option to use insecure http. I can't think of any
-	// sensible use case for plain http though. https should be used everywhere.
-	return this._knoxForFile(file).https(this._resolveFilename(file));
+	return 'https://' + (file.bucket || this.options.bucket) + '.s3.amazonaws.com' + this._resolveFilename(file);
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
