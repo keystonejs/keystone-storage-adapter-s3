@@ -14,8 +14,8 @@ var pathlib = require('path');
 var fs = require('fs');
 
 var DEFAULT_OPTIONS = {
-	accessKeyId: process.env.S3_KEY || process.env.AWS_ACCESS_KEY_ID,
-	secretAccessKey: process.env.S3_SECRET || process.env.AWS_SECRET_ACCESS_KEY,
+	key: process.env.S3_KEY || process.env.AWS_ACCESS_KEY_ID,
+	secret: process.env.S3_SECRET || process.env.AWS_SECRET_ACCESS_KEY,
 	region: process.env.S3_REGION || process.env.AWS_REGION,
 	bucket: process.env.S3_BUCKET || 'us-standard',
 	generateFilename: nameFunctions.randomFilename,
@@ -41,8 +41,8 @@ function S3Adapter (options, schema) {
 			Bucket: this.options.bucket,
 			ACL: this.options.acl,
 		},
-		accessKeyId: this.options.accessKeyId,
-		secretAccessKey: this.options.secretAccessKey,
+		accessKeyId: this.options.key,
+		secretAccessKey: this.options.secret,
 		region: this.options.region,
 	});
 
