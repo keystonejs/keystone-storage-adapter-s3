@@ -136,7 +136,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - the file is set to a canned ACL (ie, headers:{ 'x-amz-acl': 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
-	return 'https://' + (file.bucket || this.options.bucket) + '.s3.amazonaws.com' + this._resolveFilename(file);
+	return 'https://' + (file.bucket || this.options.bucket) + '.' + this.client.endpoint.host + this._resolveFilename(file);
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
