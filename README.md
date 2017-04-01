@@ -17,9 +17,10 @@ var storage = new keystone.Storage({
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics',
-    headers: {
-      'x-amz-acl': 'public-read', // add default headers; see below for details
-    },
+    params: {
+      // see https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
+      ACL: 'public-read',
+    }
   },
   schema: {
     bucket: true, // optional; store the bucket the file was uploaded to in your db
