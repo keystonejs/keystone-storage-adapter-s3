@@ -38,10 +38,10 @@ function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	this.client = new S3({
-		params: assign({
-			// included in every call, but may be overriden
+		params: {
+			// included in every call, but may be overriden with using `params` options
 			Bucket: this.options.bucket,
-		}, this.options.params),
+		},
 		accessKeyId: this.options.key,
 		secretAccessKey: this.options.secret,
 		region: this.options.region,
@@ -74,6 +74,15 @@ S3Adapter.SCHEMA_FIELD_DEFAULTS = {
 	etag: false,
 };
 
+// get extra params to pass to s3 client
+S3Adapter.prototype._getParams = function (file) {
+	if (typeof this.options.params === 'function') {
+		return this.options.params(file);
+	} else {
+		return this.options.params || {};
+	}
+};
+
 // Get the full, absolute path name for the specified file.
 S3Adapter.prototype._resolveKey = function (filename) {
 	return pathlib.join(this.options.path, filename);
@@ -101,12 +110,12 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// file.url is automatically populated by keystone's Storage class so we
 		// don't need to set it here.
 
-		var params = {
+		var params = assign({
 			ContentLength: file.size,
 			ContentType: file.mimetype,
 			Body: blob,
 			Key: self._resolveKey(filename),
-		};
+		}, self._getParams(file));
 
 		debug('Uploading file %s', filename);
 		self.client.putObject(params, function (err, data) {
