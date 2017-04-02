@@ -35,6 +35,10 @@ var DEFAULT_OPTIONS = {
 // See README.md for details and usage examples.
 
 function S3Adapter (options, schema) {
+	if (options.headers) {
+		throw Error('Configuration error: `headers` is no longer supported, use `params` instead');
+	}
+
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	this.client = new S3({
