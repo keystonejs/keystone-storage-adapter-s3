@@ -1,6 +1,6 @@
 {
   "name": "keystone-storage-adapter-s3",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "S3 storage adapter for keystonejs",
   "main": "index.js",
   "author": "Joseph Gentle <me@josephg.com>",
