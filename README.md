@@ -17,9 +17,10 @@ var storage = new keystone.Storage({
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics',
-    headers: {
-      'x-amz-acl': 'public-read', // add default headers; see below for details
-    },
+    params: {
+      // see https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property
+      ACL: 'public-read',
+    }
   },
   schema: {
     bucket: true, // optional; store the bucket the file was uploaded to in your db
@@ -53,7 +54,19 @@ The adapter requires an additional `s3` field added to the storage options. It a
 
 - **path**: Storage path inside the bucket. By default uploaded files will be stored in the root of the bucket. You can override this by specifying a base path here. Base path must be absolute, for example '/images/profilepics'.
 
-- **headers**: Default headers to add when uploading files to S3. You can use these headers to configure lots of additional properties and store (small) extra data about the files in S3 itself. See [AWS documentation](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html) for options. Examples: `{"x-amz-acl": "public-read"}` to override the bucket ACL and make all uploaded files globally readable.
+- **params**: Default params to add when uploading files to S3. You can use these params to configure lots of additional properties and store (small) extra data about the files in S3 itself. See [AWS documentation](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#putObject-property) for options. Examples: `{ACL: "public-read"}` to override the bucket ACL and make all uploaded files globally readable.
+
+`params` can be an object or a function.  The function will receive the file object as an argument.
+
+```js
+params: function (file) {
+  return {
+    'ContentDisposition': 'Attachment; filename=' + file.originalname
+  };
+}
+
+```
+
 
 
 ### Schema
