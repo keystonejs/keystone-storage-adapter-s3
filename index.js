@@ -89,7 +89,8 @@ S3Adapter.prototype._getParams = function (file) {
 
 // Get the full, absolute path name for the specified file.
 S3Adapter.prototype._resolveKey = function (filename) {
-	return pathlib.join(this.options.path, filename);
+	// s3 keys have no preceding slash
+	return pathlib.join(this.options.path.slice(1) || '', filename);
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -142,7 +143,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - the file is set to a canned ACL (ie, params:{ ACL: 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
-	return 'https://' + (file.bucket || this.options.bucket) + '.' + this.client.endpoint.host + this._resolveKey(file.filename);
+	return 'https://' + (file.bucket || this.options.bucket) + '.' + this.client.endpoint.host + '/' + this._resolveKey(file.filename);
 };
 
 S3Adapter.prototype.removeFile = function (filename, callback) {
