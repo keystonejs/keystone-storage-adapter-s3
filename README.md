@@ -55,6 +55,12 @@ The adapter requires an additional `s3` field added to the storage options. It a
 
 - **headers**: Default headers to add when uploading files to S3. You can use these headers to configure lots of additional properties and store (small) extra data about the files in S3 itself. See [AWS documentation](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html) for options. Examples: `{"x-amz-acl": "public-read"}` to override the bucket ACL and make all uploaded files globally readable.
 
+- **generateFilename**: A function that accepts a file, a parameter and a callback to generate a strong pseudo-random 16 byte filename.
+
+```js
+	generateFilename: (file, param, cb) => { cb(null, file.filename); }
+```
+
 
 ### Schema
 
