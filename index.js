@@ -10,7 +10,7 @@ var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
 var knox = require('knox');
 var nameFunctions = require('keystone-storage-namefunctions');
-var pathlib = require('path');
+var path = require('path');
 
 var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
@@ -44,7 +44,7 @@ function S3Adapter (options, schema) {
 	this.client = knox.createClient(this.options);
 
 	// If path is specified it must be absolute.
-	if (options.path != null && !pathlib.isAbsolute(options.path)) {
+	if (options.path != null && !path.isAbsolute(options.path)) {
 		throw Error('Configuration error: S3 path must be absolute');
 	}
 
@@ -89,8 +89,8 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// isn't stored we'll assume all the files are in the path specified in the
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
-	var path = file.path || this.options.path || '/';
-	return pathlib.posix.join(path, file.filename);
+	var filePath = file.path || this.options.path || '/';
+	return path.posix.join(filePath, file.filename);
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -99,12 +99,12 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		if (err) return callback(err);
 
 		// The expanded path of the file on the filesystem.
-		var localpath = file.path;
+		var localPath = file.path;
 
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var destpath = self._resolveFilename(file);
+		var destPath = self._resolveFilename(file);
 
 		// Figure out headers
 		var headers = assign({}, self.options.headers, {
@@ -113,7 +113,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		});
 
 		debug('Uploading file %s', filename);
-		self.client.putFile(localpath, destpath, headers, function (err, res) {
+		self.client.putFile(localPath, destPath, headers, function (err, res) {
 			if (err) return callback(err);
 			if (res.statusCode !== 200) {
 				return callback(new Error('Amazon returned status code: ' + res.statusCode));
@@ -156,8 +156,8 @@ S3Adapter.prototype.getFileURL = function (file) {
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
-	var fullpath = this._resolveFilename(file);
-	this._knoxForFile(file).deleteFile(fullpath, function (err, res) {
+	var fullPath = this._resolveFilename(file);
+	this._knoxForFile(file).deleteFile(fullPath, function (err, res) {
 		if (err) return callback(err);
 		// Deletes return 204 according to the spec, but we'll allow 200 too:
 		// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectDELETE.html
@@ -172,8 +172,8 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 // Check if a file with the specified filename already exists. Callback called
 // with the file headers if the file exists, null otherwise.
 S3Adapter.prototype.fileExists = function (filename, callback) {
-	var fullpath = this._resolveFilename({ filename: filename });
-	this.client.headFile(fullpath, function (err, res) {
+	var fullPath = this._resolveFilename({ filename: filename });
+	this.client.headFile(fullPath, function (err, res) {
 		if (err) return callback(err);
 
 		if (res.statusCode === 404) return callback(); // File does not exist
