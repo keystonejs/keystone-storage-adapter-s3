@@ -90,7 +90,7 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
 	var path = file.path || this.options.path || '/';
-	return pathlib.posix.resolve(path, file.filename);
+	return pathlib.posix.join(path, file.filename);
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
