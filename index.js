@@ -107,7 +107,15 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		var destpath = self._resolveFilename(file);
 
 		// Figure out headers
-		var headers = assign({}, self.options.headers, {
+		if (typeof self.options.headers === 'function') {
+			try {
+				self.options.setHeaders = self.options.headers(file);
+			} catch (err) {
+				return callback(err);
+			}
+		}
+
+		var headers = assign({}, self.options.setHeaders, {
 			'Content-Length': file.size,
 			'Content-Type': file.mimetype,
 		});
