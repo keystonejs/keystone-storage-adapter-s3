@@ -8,7 +8,7 @@ TODO
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
-var knox = require('knox');
+var knox = require('knox-s3');
 var nameFunctions = require('keystone-storage-namefunctions');
 var pathlib = require('path');
 
