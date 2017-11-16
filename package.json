@@ -10,8 +10,8 @@
   },
   "homepage": "https://github.com/keystonejs/keystone-storage-adapter-s3",
   "dependencies": {
+    "aws-sdk": "^2.151.0",
     "debug": "^2.2.0",
-    "knox-s3": "^0.9.5",
     "keystone-storage-namefunctions": "^1.0.0",
     "object-assign": "^4.1.0"
   },
