@@ -20,6 +20,7 @@ var storage = new keystone.Storage({
     headers: {
       'x-amz-acl': 'public-read', // add default headers; see below for details
     },
+    publicUrl: file =>  `https://234gf78g45f.cloudfront.net/${file.filename}`,
   },
   schema: {
     bucket: true, // optional; store the bucket the file was uploaded to in your db
@@ -54,6 +55,8 @@ The adapter requires an additional `s3` field added to the storage options. It a
 - **path**: Storage path inside the bucket. By default uploaded files will be stored in the root of the bucket. You can override this by specifying a base path here. Base path must be absolute, for example '/images/profilepics'.
 
 - **headers**: Default headers to add when uploading files to S3. You can use these headers to configure lots of additional properties and store (small) extra data about the files in S3 itself. See [AWS documentation](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html) for options. Examples: `{"x-amz-acl": "public-read"}` to override the bucket ACL and make all uploaded files globally readable.
+
+- **publicUrl**: Custom function to use for a public URL. This can be useful if you are storing in S3 but reading through a CDN like Cloudfront.
 
 
 ### Schema

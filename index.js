@@ -9,21 +9,19 @@ var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
 var fs = require('fs');
-var path = require('path');
 var S3 = require('aws-sdk/clients/s3');
 var nameFunctions = require('keystone-storage-namefunctions');
 var pathlib = require('path');
 
 var DEFAULT_OPTIONS = {
-	key: process.env.S3_KEY,
-	secret: process.env.S3_SECRET,
-	bucket: process.env.S3_BUCKET,
-	region: process.env.S3_REGION || 'us-east-1',
+	Bucket: process.env.S3_BUCKET,
 	generateFilename: nameFunctions.randomFilename,
 };
 
 var s3 = new S3({
-	region: process.env.S3_REGION,
+	accessKeyId: process.env.S3_KEY,
+	secretAccessKey: process.env.S3_SECRET,
+	region: process.env.S3_REGION || 'us-east-1',
 });
 
 // This constructor is usually called indirectly by the Storage class
@@ -79,7 +77,17 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
 	var path = file.path || this.options.path || '/';
-	return pathlib.posix.resolve(path, file.filename);
+	var filename = pathlib.posix.resolve(path, file.filename);
+	return (filename.length && filename[0] === '/') ? filename.substring(1) : filename;
+};
+
+S3Adapter.prototype._awsParams = function (file) {
+	if (file && file.bucket && file.bucket !== this.options.Bucket) {
+		var s3options = assign({}, this.options, { Bucket: file.bucket });
+		return s3options;
+	} else {
+		return this.options;
+	}
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -93,7 +101,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var destpath = self._resolveFilename(file);
+		var fullpath = self._resolveFilename(file);
 
 		debug('Uploading file %s', filename);
 
@@ -102,15 +110,13 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			if (err) return callback(err);
 		});
 
-		var params = {
-			Bucket: self.options.bucket,
-			Key: path.basename(destpath),
+		var params = assign({}, {
+			Key: fullpath,
 			Body: fileStream,
-		};
+		}, self._awsParams());
 
 		s3.upload(params, function (err, data) {
 			if (err) return callback(err);
-
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
 			// set.
@@ -127,9 +133,8 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			// *don't* store these values you can arguably migrate your data more
 			// easily - just move it all, reconfigure and restart your server.
 			file.path = self.options.path;
-			file.bucket = self.options.bucket;
+			file.bucket = self.options.Bucket;
 
-			file.url = data.Location;
 			debug('file upload successful');
 			callback(null, file);
 		});
@@ -144,15 +149,19 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 S3Adapter.prototype.getFileURL = function (file) {
 	// Consider providing an option to use insecure http. I can't think of any
 	// sensible use case for plain http though. https should be used everywhere.
-	return file.url;
+	if (typeof this.options.publicUrl === 'function') {
+		return this.options.publicUrl(file);
+	}
+	return 'https://' + this.options.Bucket + '.s3.amazonaws.com' + (this.options.path.length > 0 ? this.options.path : '') + '/' + file.filename;
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
 	var fullpath = this._resolveFilename(file);
-	var params = {
-		Bucket: this.options.bucket,
-		Key: path.basename(fullpath),
-	};
+
+	var params = assign({}, {
+		Key: fullpath,
+	}, self._awsParams());
+
 	s3.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
 		callback();
@@ -164,10 +173,9 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 S3Adapter.prototype.fileExists = function (filename, callback) {
 	var fullpath = this._resolveFilename({ filename: filename });
 
-	var params = {
-		Bucket: this.options.bucket,
-		Key: path.basename(fullpath),
-	};
+	var params = assign({}, {
+		Key: fullpath,
+	}, self._awsParams());
 
 	s3.getObject(params, function (err, data) {
 		if (err) return callback(err);
