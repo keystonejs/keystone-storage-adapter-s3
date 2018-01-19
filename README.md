@@ -4,6 +4,15 @@ This adapter is designed to replace the existing `S3File` field in KeystoneJS us
 
 Compatible with Node.js 0.12+
 
+## Thanks to Steven Kaspar
+He did the intial leg work to remove Knox and implement S3 Storage Adapter
+https://github.com/stevenkaspar/keystone-storage-adapter-s3
+
+# Changes
+1. Switch to PUT Object API to preserve Versioning and use best practices
+2. Add mimetype Option to upload to preserve Content-Type header
+3. Update README for clear and correct usage
+
 ## Usage
 
 Configure the storage adapter:
@@ -17,11 +26,28 @@ var storage = new keystone.Storage({
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics',
-    headers: {
-      'x-amz-acl': 'public-read', // add default headers; see below for details
-    },
+    // CUSTOM AWS SDK PARAMETERS
+    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
+    ACL:'public-read',
+    // CacheControl — (String) Specifies caching behavior along the request/reply chain.
+    // ContentDisposition — (String) Specifies presentational information for the object.
+    // ContentEncoding — (String) Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field.
+    // ContentLanguage — (String) The language the content is in.
+    // ContentLength — (Integer) Size of the body in bytes. This parameter is useful when the size of the body cannot be determined automatically.
+    // ContentMD5 — (String) The base64-encoded 128-bit MD5 digest of the part data.
+    // ContentType — (String) A standard MIME type describing the format of the object data.
+    // Expires — (Date) The date and time at which the object is no longer cacheable.
+    // GrantFullControl — (String) Gives the grantee READ, READ_ACP, and WRITE_ACP permissions on the object.
+    // GrantRead — (String) Allows grantee to read the object data and its metadata.
+    // GrantReadACP — (String) Allows grantee to read the object ACL.
+    // GrantWriteACP — (String) Allows grantee to write the ACL for the applicable object.
+    // Key — (String) Object key for which the PUT operation was initiated.
+    // Metadata — (map<String>) A map of metadata to store with the object in S3.
+    publicUrl: file =>  `https://xxxxxxxxx.cloudfront.net/${file.filename}`,
   },
   schema: {
+    mimetype: true | false, // adds Content-Type to your upload
+    size: true | false, // adds Content-Length to your upload
     bucket: true, // optional; store the bucket the file was uploaded to in your db
     etag: true, // optional; store the etag for the resource
     path: true, // optional; store the path of the file in your db
