@@ -88,10 +88,10 @@ S3Adapter.prototype._resolveFilename = function (file) {
 
 S3Adapter.prototype._awsParams = function (file) {
 	if (file && file.bucket && file.bucket !== this.options.Bucket) {
-		var s3options = assign({}, this.options, { Bucket: file.bucket });
+		var s3options = assign({}, this.options.params, { Bucket: file.bucket });
 		return s3options;
 	} else {
-		return this.options;
+		return this.options.params;
 	}
 };
 
@@ -107,9 +107,6 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		file.path = self.options.path;
 		file.filename = filename;
 		var fullpath = self._resolveFilename(file);
-
-		debug('Uploading file %s', filename);
-
 		var fileStream = fs.createReadStream(localpath);
 		fileStream.on('error', function (err) {
 			if (err) return callback(err);
@@ -153,7 +150,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			// *don't* store these values you can arguably migrate your data more
 			// easily - just move it all, reconfigure and restart your server.
 			file.path = self.options.path;
-			file.bucket = self.options.Bucket;
+			file.bucket = DEFAULT_OPTIONS.Bucket;
 
 			debug('file upload successful');
 			callback(null, file);
