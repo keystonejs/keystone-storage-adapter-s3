@@ -133,6 +133,8 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// switch to PUT Object API in order to preserve file versions on S3
 		// this is an AWS SDK best practice
 		s3.putObject(params, function (err, data) {
+			console.warn(err)
+			console.warn(data)
 			if (err) return callback(err);
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
