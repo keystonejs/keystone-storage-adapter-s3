@@ -3,22 +3,31 @@ TODO
 - Check whether files exist before uploading (will always overwrite as-is)
 - Support multiple retry attempts if a file exists (see FS Adapter)
 */
+/*
+TODO
+- Check whether files exist before uploading (will always overwrite as-is)
+- Support multiple retry attempts if a file exists (see FS Adapter)
+*/
 
 // Mirroring keystone 0.4's support of node 0.12.
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
-var knox = require('knox');
+var fs = require('fs');
+var S3 = require('aws-sdk/clients/s3');
 var nameFunctions = require('keystone-storage-namefunctions');
 var pathlib = require('path');
 
 var DEFAULT_OPTIONS = {
-	key: process.env.S3_KEY,
-	secret: process.env.S3_SECRET,
-	bucket: process.env.S3_BUCKET,
-	region: process.env.S3_REGION || 'us-east-1',
+	Bucket: process.env.S3_BUCKET,
 	generateFilename: nameFunctions.randomFilename,
 };
+
+var s3 = new S3({
+	accessKeyId: process.env.S3_KEY,
+	secretAccessKey: process.env.S3_SECRET,
+	region: process.env.S3_REGION || 'us-east-1',
+});
 
 // This constructor is usually called indirectly by the Storage class
 // in keystone.
@@ -39,9 +48,6 @@ function S3Adapter (options, schema) {
 	if (this.options.defaultHeaders) {
 		this.options.headers = this.options.defaultHeaders;
 	}
-
-	// Knox will check for the 'key', 'secret' and 'bucket' options.
-	this.client = knox.createClient(this.options);
 
 	// If path is specified it must be absolute.
 	if (options.path != null && !pathlib.isAbsolute(options.path)) {
@@ -69,20 +75,6 @@ S3Adapter.SCHEMA_FIELD_DEFAULTS = {
 	etag: false,
 };
 
-// Return a knox client configured to interact with the specified file.
-S3Adapter.prototype._knoxForFile = function (file) {
-	// Clients are allowed to store the bucket name in the file structure. If they
-	// do it'll make it possible to have some files in one bucket and some files
-	// in another bucket. The knox client is configured per-bucket, so if you're
-	// using multiple buckets we'll need a different knox client for each file.
-	if (file.bucket && file.bucket !== this.options.bucket) {
-		var s3options = assign({}, this.options, { bucket: file.bucket });
-		return knox.createClient(s3options);
-	} else {
-		return this.client;
-	}
-};
-
 // Get the full, absolute path name for the specified file.
 S3Adapter.prototype._resolveFilename = function (file) {
 	// Just like the bucket, the schema can store the path for files. If the path
@@ -90,7 +82,17 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
 	var path = file.path || this.options.path || '/';
-	return pathlib.posix.resolve(path, file.filename);
+	var filename = pathlib.posix.resolve(path, file.filename);
+	return (filename.length && filename[0] === '/') ? filename.substring(1) : filename;
+};
+
+S3Adapter.prototype._awsParams = function (file) {
+	if (file && file.bucket && file.bucket !== this.options.Bucket) {
+		var s3options = assign({}, this.options.params, { Bucket: file.bucket });
+		return s3options;
+	} else {
+		return this.options.params;
+	}
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -104,27 +106,41 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var destpath = self._resolveFilename(file);
-
-		// Figure out headers
-		var headers = assign({}, self.options.headers, {
-			'Content-Length': file.size,
-			'Content-Type': file.mimetype,
+		var fullpath = self._resolveFilename(file);
+		var fileStream = fs.createReadStream(localpath);
+		fileStream.on('error', function (err) {
+			if (err) return callback(err);
 		});
 
-		debug('Uploading file %s', filename);
-		self.client.putFile(localpath, destpath, headers, function (err, res) {
-			if (err) return callback(err);
-			if (res.statusCode !== 200) {
-				return callback(new Error('Amazon returned status code: ' + res.statusCode));
-			}
-			res.resume(); // Discard (empty) body.
+		var params = assign({}, {
+			Key: fullpath,
+			Body: fileStream,
+		}, self._awsParams());
 
+		// add mimetype to headers
+		// per docs: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
+		if(file.hasOwnProperty('mimetype')){
+			if(file.mimetype !== undefined && file.mimetype !== null) {
+				params.ContentType = file.mimetype
+			}
+		}
+		if(file.hasOwnProperty('size')){
+			if(file.size !== undefined && file.sizes !== null) {
+				params.ContentLength = file.size
+			}
+		}
+
+		// switch to PUT Object API in order to preserve file versions on S3
+		// this is an AWS SDK best practice
+		s3.putObject(params, function (err, data) {
+			console.warn(err)
+			console.warn(data)
+			if (err) return callback(err);
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
 			// set.
 			file.filename = filename;
-			file.etag = res.headers.etag; // TODO: This etag is double-quoted (??why?)
+			file.etag = data.ETag; // TODO: This etag is double-quoted (??why?)
 
 			// file.url is automatically populated by keystone's Storage class so we
 			// don't need to set it here.
@@ -136,7 +152,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			// *don't* store these values you can arguably migrate your data more
 			// easily - just move it all, reconfigure and restart your server.
 			file.path = self.options.path;
-			file.bucket = self.options.bucket;
+			file.bucket = DEFAULT_OPTIONS.Bucket;
 
 			debug('file upload successful');
 			callback(null, file);
@@ -152,19 +168,21 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 S3Adapter.prototype.getFileURL = function (file) {
 	// Consider providing an option to use insecure http. I can't think of any
 	// sensible use case for plain http though. https should be used everywhere.
-	return this._knoxForFile(file).https(this._resolveFilename(file));
+	if (typeof this.options.publicUrl === 'function') {
+		return this.options.publicUrl(file);
+	}
+	return 'https://' + this.options.Bucket + '.s3.amazonaws.com' + (this.options.path.length > 0 ? this.options.path : '') + '/' + file.filename;
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
 	var fullpath = this._resolveFilename(file);
-	this._knoxForFile(file).deleteFile(fullpath, function (err, res) {
+
+	var params = assign({}, {
+		Key: fullpath,
+	}, self._awsParams());
+
+	s3.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
-		// Deletes return 204 according to the spec, but we'll allow 200 too:
-		// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectDELETE.html
-		if (res.statusCode !== 200 && res.statusCode !== 204) {
-			return callback(Error('Amazon returned status code ' + res.statusCode));
-		}
-		res.resume(); // Discard the body
 		callback();
 	});
 };
@@ -173,11 +191,14 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 // with the file headers if the file exists, null otherwise.
 S3Adapter.prototype.fileExists = function (filename, callback) {
 	var fullpath = this._resolveFilename({ filename: filename });
-	this.client.headFile(fullpath, function (err, res) {
-		if (err) return callback(err);
 
-		if (res.statusCode === 404) return callback(); // File does not exist
-		callback(null, res.headers);
+	var params = assign({}, {
+		Key: fullpath,
+	}, self._awsParams());
+
+	s3.getObject(params, function (err, data) {
+		if (err) return callback(err);
+		else		 callback(null, data);
 	});
 };
 
