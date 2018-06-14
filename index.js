@@ -42,10 +42,6 @@ function S3Adapter (options, schema) {
 	// TODO: Remove me with the next major version bump
 	if (this.options.defaultHeaders) {
 		this.options.headers = this.options.defaultHeaders;
-	}
-
-	// If path is specified it must be absolute.
-	if (options.path != null && !pathlib.isAbsolute(options.path)) {
 		throw Error('Configuration error: S3 path must be absolute');
 	}
 
