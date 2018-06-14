@@ -14,15 +14,13 @@ var nameFunctions = require('keystone-storage-namefunctions');
 var pathlib = require('path');
 
 var DEFAULT_OPTIONS = {
-	Bucket: process.env.S3_BUCKET,
+	key: process.env.S3_KEY,
+	secret: process.env.S3_SECRET,
+	bucket: process.env.S3_BUCKET,
+	region: process.env.S3_REGION || 'us-east-1',
 	generateFilename: nameFunctions.randomFilename,
 };
 
-var s3 = new S3({
-	accessKeyId: process.env.S3_KEY,
-	secretAccessKey: process.env.S3_SECRET,
-	region: process.env.S3_REGION || 'us-east-1',
-});
 
 // This constructor is usually called indirectly by the Storage class
 // in keystone.
@@ -44,6 +42,12 @@ function S3Adapter (options, schema) {
 		this.options.headers = this.options.defaultHeaders;
 		throw Error('Configuration error: S3 path must be absolute');
 	}
+	// Create the s3 client
+	this.s3Client = new S3({
+		accessKeyId: this.options.key,
+		secretAccessKey: this.options.secret,
+		region: this.options.region,
+	});
 
 	// Ensure the generateFilename option takes a callback
 	this.options.generateFilename = ensureCallback(this.options.generateFilename);
@@ -111,7 +115,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			Body: fileStream,
 		}, self._awsParams());
 
-		s3.upload(params, function (err, data) {
+		self.s3Client.upload(params, function (err, data) {
 			if (err) return callback(err);
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
@@ -129,7 +133,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			// *don't* store these values you can arguably migrate your data more
 			// easily - just move it all, reconfigure and restart your server.
 			file.path = self.options.path;
-			file.bucket = self.options.Bucket;
+			file.bucket = self.options.bucket;
 
 			debug('file upload successful');
 			callback(null, file);
@@ -152,13 +156,14 @@ S3Adapter.prototype.getFileURL = function (file) {
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
+	var self = this;
 	var fullpath = this._resolveFilename(file);
 
 	var params = assign({}, {
 		Key: fullpath,
-	}, self._awsParams());
+	}, self._awsParams(file));
 
-	s3.deleteObject(params, function (err, data) {
+	self.s3Client.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
 		callback();
 	});
@@ -167,15 +172,16 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 // Check if a file with the specified filename already exists. Callback called
 // with the file headers if the file exists, null otherwise.
 S3Adapter.prototype.fileExists = function (filename, callback) {
+	var self = this;
 	var fullpath = this._resolveFilename({ filename: filename });
 
 	var params = assign({}, {
 		Key: fullpath,
 	}, self._awsParams());
 
-	s3.getObject(params, function (err, data) {
+	self.s3Client.getObject(params, function (err, data) {
 		if (err) return callback(err);
-		else		 callback(null, data);
+		else callback(null, data);
 	});
 };
 
