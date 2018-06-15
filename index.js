@@ -21,6 +21,22 @@ var DEFAULT_OPTIONS = {
 	generateFilename: nameFunctions.randomFilename,
 };
 
+function ensureLeadingSlash (filename) {
+	return filename[0] !== '/' ? '/' + filename : filename;
+}
+
+function removeLeadingSlash (filename) {
+	return filename[0] === '/' ? filename.substring(1) : filename;
+}
+
+function encodeSpecialCharacters (filename) {
+	// Note: these characters are valid in URIs, but S3 does not like them for
+	// some reason.
+	return encodeURI(filename).replace(/[!'()#*+? ]/g, function (char) {
+		return '%' + char.charCodeAt(0).toString(16);
+	});
+}
+
 
 // This constructor is usually called indirectly by the Storage class
 // in keystone.
@@ -77,16 +93,15 @@ S3Adapter.prototype._resolveFilename = function (file) {
 	// s3.path option. If that doesn't exist we'll assume the file is in the root
 	// of the bucket. (Whew!)
 	var path = file.path || this.options.path || '/';
-	var filename = pathlib.posix.resolve(path, file.filename);
-	return (filename.length && filename[0] === '/') ? filename.substring(1) : filename;
+	var filename = pathlib.posix.resolve(ensureLeadingSlash(path), file.filename);
+	return encodeSpecialCharacters(filename);
 };
 
-S3Adapter.prototype._awsParams = function (file) {
-	if (file && file.bucket && file.bucket !== this.options.Bucket) {
-		var s3options = assign({}, this.options, { Bucket: file.bucket });
-		return s3options;
+S3Adapter.prototype._resolveBucket = function (file) {
+	if (file && file.bucket && file.bucket) {
+		return file.bucket;
 	} else {
-		return this.options;
+		return this.options.bucket;
 	}
 };
 
@@ -110,10 +125,11 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			if (err) return callback(err);
 		});
 
-		var params = assign({}, {
-			Key: fullpath,
+		var params = {
+			Key: removeLeadingSlash(fullpath),
 			Body: fileStream,
-		}, self._awsParams());
+			Bucket: self._resolveBucket(),
+		};
 
 		self.s3Client.upload(params, function (err, data) {
 			if (err) return callback(err);
@@ -147,22 +163,25 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - the file is set to a canned ACL (ie, headers:{ 'x-amz-acl': 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
+	var bucket = this._resolveBucket(file);
+	var fullpath = this._resolveFilename(file);
+
 	// Consider providing an option to use insecure http. I can't think of any
 	// sensible use case for plain http though. https should be used everywhere.
 	if (typeof this.options.publicUrl === 'function') {
-		return this.options.publicUrl(file);
+		return this.options.publicUrl(fullpath);
 	}
-	return 'https://' + this.options.Bucket + '.s3.amazonaws.com' + (this.options.path.length > 0 ? this.options.path : '') + '/' + file.filename;
+	return 'https://' + bucket + '.s3.amazonaws.com' + fullpath;
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
 	var self = this;
 	var fullpath = this._resolveFilename(file);
 
-	var params = assign({}, {
+	var params = {
 		Key: fullpath,
-	}, self._awsParams(file));
-
+		Bucket: self._resolveBucket(file),
+	};
 	self.s3Client.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
 		callback();
@@ -175,9 +194,10 @@ S3Adapter.prototype.fileExists = function (filename, callback) {
 	var self = this;
 	var fullpath = this._resolveFilename({ filename: filename });
 
-	var params = assign({}, {
+	var params = {
 		Key: fullpath,
-	}, self._awsParams());
+		Bucket: self._resolveBucket(),
+	};
 
 	self.s3Client.getObject(params, function (err, data) {
 		if (err) return callback(err);
