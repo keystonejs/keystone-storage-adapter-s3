@@ -5,13 +5,14 @@ TODO
 */
 
 // Mirroring keystone 0.4's support of node 0.12.
+var fs = require('fs');
+var pathlib = require('path');
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
+var mime = require('mime');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
-var fs = require('fs');
-var S3 = require('aws-sdk/clients/s3');
 var nameFunctions = require('keystone-storage-namefunctions');
-var pathlib = require('path');
+var S3 = require('aws-sdk/clients/s3');
 
 var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
@@ -112,13 +113,15 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 
 		// The expanded path of the file on the filesystem.
 		var localpath = file.path;
+		// Grab the mimeType based on file extension
+		var mimeType = mime.getType(localpath);
 
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
 		var fullpath = self._resolveFilename(file);
 
-		debug('Uploading file %s', filename);
+		debug('Uploading file "%s" to "%s" as "%s"', filename, fullpath, mimeType);
 
 		var fileStream = fs.createReadStream(localpath);
 		fileStream.on('error', function (err) {
@@ -129,6 +132,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			Key: removeLeadingSlash(fullpath),
 			Body: fileStream,
 			Bucket: self._resolveBucket(),
+			ContentType: mimeType,
 		};
 
 		self.s3Client.upload(params, function (err, data) {
@@ -151,7 +155,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			file.path = self.options.path;
 			file.bucket = self.options.bucket;
 
-			debug('file upload successful');
+			debug('file %s upload successful', filename);
 			callback(null, file);
 		});
 	});
@@ -182,6 +186,7 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 		Key: fullpath,
 		Bucket: self._resolveBucket(file),
 	};
+	debug('removeFile "%s" from bucket "%s"', fullpath, params.Bucket);
 	self.s3Client.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
 		callback();
