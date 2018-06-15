@@ -54,7 +54,7 @@ function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	// Check that `uploadParams` does not include any that we will be setting.
-	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType'];
+	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType', 'ContentLength'];
 	Object.keys(this.options.uploadParams).forEach(function (key) {
 		if (restrictedPrams.indexOf(key) !== -1) {
 			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
@@ -110,7 +110,7 @@ S3Adapter.prototype._resolvePath = function (file) {
 	return ensureLeadingSlash(path);
 };
 
-// Get the full, absolute path name for the specified file.
+// Get the absolute path name for the specified file.
 S3Adapter.prototype._resolveAbsolutePath = function (file) {
 	var path = this._resolvePath(file);
 	var filename = pathlib.posix.resolve(path, file.filename);
@@ -126,6 +126,8 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		var localpath = file.path;
 		// Grab the mimetype so we can set ContentType in S3
 		var mimetype = file.mimetype;
+		// Grab the size so we can set ContentLength
+		var filesize = file.size;
 
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
@@ -145,6 +147,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			Body: fileStream,
 			Bucket: bucket,
 			ContentType: mimetype,
+			ContentLength: filesize,
 		}, self.options.uploadParams);
 
 		self.s3Client.upload(params, function (err, data) {
