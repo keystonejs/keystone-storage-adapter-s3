@@ -51,6 +51,7 @@ function encodeSpecialCharacters (filename) {
 // See README.md for details and usage examples.
 
 function S3Adapter (options, schema) {
+	var self = this;
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	// Check that `uploadParams` does not include any that we will be setting.
@@ -58,6 +59,14 @@ function S3Adapter (options, schema) {
 	Object.keys(this.options.uploadParams).forEach(function (key) {
 		if (restrictedPrams.indexOf(key) !== -1) {
 			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
+		}
+	});
+
+	// Check required options are set.
+	var requiredOptions = ['key', 'secret', 'bucket'];
+	requiredOptions.forEach(function (key) {
+		if (!self.options[key]) {
+			throw new Error('Configuration error: Missing required option `' + key + '`');
 		}
 	});
 
