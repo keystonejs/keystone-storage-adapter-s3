@@ -2,8 +2,6 @@
 
 This adapter is designed to replace the existing `S3File` field in KeystoneJS using the new storage API.
 
-Compatible with Node.js 0.12+
-
 ## Usage
 
 Configure the storage adapter:
@@ -17,11 +15,10 @@ var storage = new keystone.Storage({
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics',
-    publicUrl: "https://234gf78g45f.cloudfront.net", // optional; sets a custom domain for public urls - see below for details
+    publicUrl: "https://xxxxxx.cloudfront.net", // optional; sets a custom domain for public urls - see below for details
     uploadParams: { // optional; add S3 upload params; see below for details
       ACL: 'public-read',
     },
-    publicUrl: file =>  `https://234gf78g45f.cloudfront.net/${file.filename}`,
   },
   schema: {
     bucket: true, // optional; store the bucket the file was uploaded to in your db
@@ -77,6 +74,31 @@ The main use of this is to allow slow data migrations. If you *don't* store thes
 
 - **etag**: The etag of the stored item. This is equal to the MD5 sum of the file content.
 
+
+# Change Log
+
+## v2.0.0
+
+### Overview
+
+The Knox library which this package was previously based on has gone unmaintained for some time and is now failing in many scenarios. This version replaces knox with the official [AWS Javascript SDK](https://aws.amazon.com/sdk-for-node-js/).
+
+### Breaking changes
+
+The option `headers` has been replaced with `uploadParams`. If you were setting custom headers with previous version of the S3 Storage Adapter you will need to change these to use the appropriate `param` as defined in the [AWS Documentation](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload)
+
+For example, `{ headers: { 'x-amz-acl': 'public-read' } }` should now be `{ uploadParams: { ACL: 'public-read' } }`.
+
+### Additions
+
+- **publicUrl**: You can now customise the public url by passing either a domain name as a string (eg. `{ publicUrl: "https://xxxxxx.cloudfront.net" }`) or by passing a function which takes the `file` object and returns a the url as a string.
+```js
+{ publicUrl: file => `https://xxxxxx.cloudfront.net${file.path}/${file.filename}` }
+```
+
+### Other
+
+- **path**: The requirement for `path` to have a **leading slash** has been removed. The previous implementation failed to catch this miss-configuration and Knox helpfully made the file uploads work anyway. This has lead to a situation where it is possible/likely that there are existing installations where a miss-configured path is stored in the database. To avoid breaking these installs we now handle adding or removing the leading slash as required.
 
 # License
 
