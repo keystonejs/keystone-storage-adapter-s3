@@ -20,6 +20,7 @@ var DEFAULT_OPTIONS = {
 	bucket: process.env.S3_BUCKET,
 	region: process.env.S3_REGION || 'us-east-1',
 	generateFilename: nameFunctions.randomFilename,
+	uploadParams: {},
 };
 
 function ensureLeadingSlash (filename) {
@@ -44,7 +45,7 @@ function encodeSpecialCharacters (filename) {
 
 // S3-specific options should be specified in an `options.s3` field,
 // which can contain the following options: { key, secret, bucket, region,
-// headers, path }.
+// uploadParams, path }.
 
 // The schema can contain the additional fields { path, bucket, etag }.
 
@@ -53,12 +54,14 @@ function encodeSpecialCharacters (filename) {
 function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
-	// Support `defaultHeaders` option alias for `headers`
-	// TODO: Remove me with the next major version bump
-	if (this.options.defaultHeaders) {
-		this.options.headers = this.options.defaultHeaders;
-		throw Error('Configuration error: S3 path must be absolute');
-	}
+	// Check that `uploadParams` does not include any that we will be setting.
+	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType'];
+	Object.keys(this.options.uploadParams).forEach(function (key) {
+		if (restrictedPrams.indexOf(key) !== -1) {
+			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
+		}
+	});
+
 	// Create the s3 client
 	this.s3Client = new S3({
 		accessKeyId: this.options.key,
@@ -128,12 +131,12 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			if (err) return callback(err);
 		});
 
-		var params = {
+		var params = assign({
 			Key: removeLeadingSlash(fullpath),
 			Body: fileStream,
 			Bucket: self._resolveBucket(),
 			ContentType: mimeType,
-		};
+		}, self.options.uploadParams);
 
 		self.s3Client.upload(params, function (err, data) {
 			if (err) return callback(err);
