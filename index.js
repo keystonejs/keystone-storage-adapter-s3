@@ -4,7 +4,7 @@ TODO
 - Support multiple retry attempts if a file exists (see FS Adapter)
 */
 
-// Mirroring keystone 0.4's support of node 0.12.
+// Mirroring keystone 4's support of node v6.
 var fs = require('fs');
 var pathlib = require('path');
 var assign = require('object-assign');

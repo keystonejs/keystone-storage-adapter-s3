@@ -4,9 +4,9 @@
   "description": "S3 storage adapter for keystonejs",
   "main": "index.js",
   "contributors": [
-      "Joseph Gentle <me@josephg.com>",
-      "Mike Hazell <mike@thinkmill.com.au>",
-      "Jed Watson <jed@keystonejs.com>"
+    "Joseph Gentle <me@josephg.com>",
+    "Mike Hazell <mike@thinkmill.com.au>",
+    "Jed Watson <jed@keystonejs.com>"
   ],
   "license": "MIT",
   "bugs": {
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "eslint": "^3.2.2",
+    "eslint-config-keystone": "^3.0.0",
     "mocha": "^3.0.0",
     "proxyquire": "^2.0.1",
     "sinon": "^6.0.0"
