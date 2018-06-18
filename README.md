@@ -1,5 +1,7 @@
 # S3-based storage adapter for KeystoneJS
 
+[![Build Status](https://travis-ci.org/keystonejs/keystone-storage-adapter-s3.svg?branch=master)](https://travis-ci.org/keystonejs/keystone-storage-adapter-s3)
+
 This adapter is designed to replace the existing `S3File` field in KeystoneJS using the new storage API.
 
 ## Usage
