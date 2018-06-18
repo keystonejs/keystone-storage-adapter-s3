@@ -102,7 +102,7 @@ S3Adapter.SCHEMA_FIELD_DEFAULTS = {
 };
 
 S3Adapter.prototype._resolveBucket = function (file) {
-	if (file && file.bucket && file.bucket) {
+	if (file && file.bucket) {
 		return file.bucket;
 	} else {
 		return this.options.bucket;
