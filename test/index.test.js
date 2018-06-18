@@ -129,7 +129,7 @@ describe('uploadFile', function () {
 
 		const file = {
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};
@@ -168,7 +168,7 @@ describe('uploadFile', function () {
 		const file = {
 			filename: 'test-file.txt',
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};
@@ -200,7 +200,7 @@ describe('uploadFile', function () {
 		const file = {
 			filename: 'test-file.txt',
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};
@@ -232,7 +232,7 @@ describe('uploadFile', function () {
 
 		const file = {
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};
@@ -263,7 +263,7 @@ describe('uploadFile', function () {
 
 		const file = {
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};
@@ -306,7 +306,7 @@ describe('uploadFile', function () {
 
 		const file = {
 			originalname: 'test-file.txt',
-			path: pathlib.resolve(__dirname, 'test-file.txt'),
+			path: pathlib.resolve(__dirname, '_fixtures/test-file.txt'),
 			mimetype: 'text/plain',
 			size: '18',
 		};

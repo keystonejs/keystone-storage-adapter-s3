@@ -6,7 +6,7 @@
   "contributors": [
       "Joseph Gentle <me@josephg.com>",
       "Mike Hazell <mike@thinkmill.com.au>",
-      "Jed Watson"
+      "Jed Watson <jed@keystonejs.com>"
   ],
   "license": "MIT",
   "bugs": {
@@ -26,7 +26,7 @@
     "sinon": "^6.0.0"
   },
   "scripts": {
-    "test": "eslint . && mocha test.js",
+    "test": "mocha",
     "lint": "eslint ."
   },
   "repository": {
