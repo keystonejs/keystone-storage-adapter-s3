@@ -3,14 +3,12 @@
 // Pull in S3 key, S3 secret and S3 bucket from .env
 
 const assert = require('assert');
-const assign = require('object-assign');
 const fs = require('fs');
 const pathlib = require('path');
 const proxyquire = require('proxyquire').noPreserveCache();
 const sinon = require('sinon');
 const S3Adapter = require('../index');
 const nameFunctions = require('keystone-storage-namefunctions');
-// const fs = require('fs');
 
 describe('constructor', function () {
 	it('throws if missing required options', function () {
@@ -97,8 +95,8 @@ describe('constructor with process.env vars', function () {
 		delete process.env.S3_REGION;
 	});
 	it('uses process.env variables if provided', function () {
-		const pqS3Adapter = proxyquire('../index', {});
-		const adapter = new pqS3Adapter({ s3: {} });
+		const StubbedS3Adapter = proxyquire('../index', {});
+		const adapter = new StubbedS3Adapter({ s3: {} });
 		assert.deepEqual(adapter.options, {
 			key: 'env_key',
 			secret: 'env_secret',
@@ -119,8 +117,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -157,8 +155,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -189,8 +187,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -221,8 +219,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -253,8 +251,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -296,8 +294,8 @@ describe('uploadFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.upload = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
-		const adapter = new pqS3Adapter({
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const adapter = new StubbedS3Adapter({
 			s3: {
 				key: 'key',
 				secret: 'secret',
@@ -373,9 +371,9 @@ describe('removeFile', function () {
 		function S3Stub () {};
 		S3Stub.prototype.deleteObject = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
 		const options = { key: 'key', secret: 'secret', bucket: 'bucket' };
-		const adapter = new pqS3Adapter({ s3: options });
+		const adapter = new StubbedS3Adapter({ s3: options });
 		adapter.removeFile({ filename: 'test.txt', path: 'path' }, function () {
 			const call = stub.getCall(0);
 			assert.deepEqual(call.args[0], {
@@ -391,9 +389,9 @@ describe('fileExists', function () {
 		function S3Stub () {};
 		S3Stub.prototype.getObject = stub;
 
-		const pqS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
+		const StubbedS3Adapter = proxyquire('../index', { 'aws-sdk/clients/s3': S3Stub });
 		const options = { key: 'key', secret: 'secret', bucket: 'bucket' };
-		const adapter = new pqS3Adapter({ s3: options });
+		const adapter = new StubbedS3Adapter({ s3: options });
 		adapter.fileExists('test.txt', function () {
 			const call = stub.getCall(0);
 			assert.deepEqual(call.args[0], {
