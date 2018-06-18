@@ -319,48 +319,49 @@ describe('uploadFile', function () {
 	});
 });
 describe('getFileURL', function () {
-	function createAdapter (extra = {}) {
-		return new S3Adapter({ s3: assign({
-			key: 'key',
-			secret: 'secret',
-			bucket: 'bucket',
-		}, extra) });
-	}
 	it('returns a url', function () {
-		const adapter = createAdapter();
+		const adapter = new S3Adapter({ s3: { key: 'key', secret: 'secret', bucket: 'bucket' } });
 		const file = { filename: 'file.txt' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://bucket.s3.amazonaws.com/file.txt');
 	});
 	it('respects the bucket defined in the file', function () {
-		const adapter = createAdapter();
+		const adapter = new S3Adapter({ s3: { key: 'key', secret: 'secret', bucket: 'bucket' } });
 		const file = { filename: 'file.txt', bucket: 'stuff' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://stuff.s3.amazonaws.com/file.txt');
 	});
 	it('respects the path defined in the file', function () {
-		const adapter = createAdapter();
+		const adapter = new S3Adapter({ s3: { key: 'key', secret: 'secret', bucket: 'bucket' } });
 		const file = { filename: 'file.txt', path: '/stuff' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://bucket.s3.amazonaws.com/stuff/file.txt');
 	});
 	it('adds a slash to path when missing', function () {
-		const adapter = createAdapter();
+		const adapter = new S3Adapter({ s3: { key: 'key', secret: 'secret', bucket: 'bucket' } });
 		const file = { filename: 'file.txt', path: 'stuff' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://bucket.s3.amazonaws.com/stuff/file.txt');
 	});
 	it('uses the publicUrl option as a string', function () {
-		const adapter = createAdapter({ publicUrl: 'https://cdn.domain.com' });
+		const adapter = new S3Adapter({ s3: {
+			key: 'key',
+			secret: 'secret',
+			bucket: 'bucket',
+			publicUrl: 'https://cdn.domain.com',
+		} });
 		const file = { filename: 'file.txt' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://cdn.domain.com/file.txt');
 	});
 	it('uses the publicUrl option as a function', function () {
-		const adapter = createAdapter({
+		const adapter = new S3Adapter({ s3: {
+			key: 'key',
+			secret: 'secret',
+			bucket: 'bucket',
 			path: '/stuff',
 			publicUrl: (file) => `https://cdn.domain.com${file.path}/${file.filename}`,
-		});
+		} });
 		const file = { filename: 'file.txt' };
 		const url = adapter.getFileURL(file);
 		assert.equal(url, 'https://cdn.domain.com/stuff/file.txt');
