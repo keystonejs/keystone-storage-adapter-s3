@@ -54,19 +54,19 @@ function S3Adapter (options, schema) {
 	var self = this;
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
-	// Check that `uploadParams` does not include any that we will be setting.
-	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType', 'ContentLength'];
-	Object.keys(this.options.uploadParams).forEach(function (key) {
-		if (restrictedPrams.indexOf(key) !== -1) {
-			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
-		}
-	});
-
 	// Check required options are set.
 	var requiredOptions = ['key', 'secret', 'bucket'];
 	requiredOptions.forEach(function (key) {
 		if (!self.options[key]) {
 			throw new Error('Configuration error: Missing required option `' + key + '`');
+		}
+	});
+
+	// Check that `uploadParams` does not include any that we will be setting.
+	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType', 'ContentLength'];
+	Object.keys(this.options.uploadParams).forEach(function (key) {
+		if (restrictedPrams.indexOf(key) !== -1) {
+			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
 		}
 	});
 
@@ -196,12 +196,15 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
 	var absolutePath = this._resolveAbsolutePath(file);
+	var path = this._resolvePath(file);
 	var bucket = this._resolveBucket(file);
 
 	if (typeof this.options.publicUrl === 'string') {
 		return this.options.publicUrl + absolutePath;
 	}
 	if (typeof this.options.publicUrl === 'function') {
+		file.path = path; // make sure path is available on the file
+		file.bucket = bucket; // make sure bucket is available on the file
 		return this.options.publicUrl(file);
 	}
 	return 'https://' + bucket + '.s3.amazonaws.com' + absolutePath;
