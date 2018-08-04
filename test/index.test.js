@@ -48,6 +48,7 @@ describe('constructor', function () {
 			secret: 'secret',
 			bucket: 'bucket',
 			region: 'us-east-1',
+			s3ForcePathStyle: false,
 			path: '/',
 			generateFilename: nameFunctions.randomFilename,
 			uploadParams: { ACL: 'public-read' },
@@ -89,6 +90,7 @@ describe('constructor with process.env vars', function () {
 		process.env.S3_SECRET = 'env_secret';
 		process.env.S3_BUCKET = 'env_bucket';
 		process.env.S3_REGION = 'env_region';
+		process.env.S3_FORCEPATHSTYLE = 'env_pathstyle';
 	});
 	after(() => {
 		delete process.env.S3_ENDPOINT;
@@ -96,6 +98,7 @@ describe('constructor with process.env vars', function () {
 		delete process.env.S3_SECRET;
 		delete process.env.S3_BUCKET;
 		delete process.env.S3_REGION;
+		delete process.env.S3_FORCEPATHSTYLE;
 	});
 	it('uses process.env variables if provided', function () {
 		const StubbedS3Adapter = proxyquire('../index', {});
@@ -106,6 +109,7 @@ describe('constructor with process.env vars', function () {
 			secret: 'env_secret',
 			bucket: 'env_bucket',
 			region: 'env_region',
+			s3ForcePathStyle: 'env_pathstyle',
 			path: '/',
 			generateFilename: nameFunctions.randomFilename,
 			uploadParams: {},
