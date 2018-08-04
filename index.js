@@ -12,8 +12,10 @@ var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
 var nameFunctions = require('keystone-storage-namefunctions');
 var S3 = require('aws-sdk/clients/s3');
+var AWS = require('aws-sdk');
 
 var DEFAULT_OPTIONS = {
+	endpoint: process.env.S3_ENDPOINT || 'https://s3.amazonaws.com',
 	key: process.env.S3_KEY,
 	secret: process.env.S3_SECRET,
 	bucket: process.env.S3_BUCKET,
@@ -75,9 +77,11 @@ function S3Adapter (options, schema) {
 
 	// Create the s3 client
 	this.s3Client = new S3({
+		endpoint: new AWS.Endpoint(this.options.endpoint),
 		accessKeyId: this.options.key,
 		secretAccessKey: this.options.secret,
 		region: this.options.region,
+		s3ForcePathStyle: true,
 	});
 
 	// Ensure the generateFilename option takes a callback

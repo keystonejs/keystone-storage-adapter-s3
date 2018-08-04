@@ -12,6 +12,7 @@ Configure the storage adapter:
 var storage = new keystone.Storage({
   adapter: require('keystone-storage-adapter-s3'),
   s3: {
+    endpoint: 'https://xxxxxx.amazonaws.com', //optional; defaults to process.env.S3_ENDPOINT, or if that's not specified, https://s3.amazonaws.com as the generic endpoint
     key: 's3-key', // required; defaults to process.env.S3_KEY
     secret: 'secret', // required; defaults to process.env.S3_SECRET
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
@@ -43,6 +44,8 @@ File.add({
 ### Options:
 
 The adapter requires an additional `s3` field added to the storage options. It accepts the following values:
+
+- **endpoint**: Path for different S3 Endpoints, see possible [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) for options. You can also set your own minio, ec2, proxy path and more here.
 
 - **key**: *(required)* AWS access key. Configure your AWS credentials in the [IAM console](https://console.aws.amazon.com/iam/home).
 
