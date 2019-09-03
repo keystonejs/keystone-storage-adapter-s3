@@ -4,49 +4,81 @@ TODO
 - Support multiple retry attempts if a file exists (see FS Adapter)
 */
 
-// Mirroring keystone 0.4's support of node 0.12.
+// Mirroring keystone 4's support of node v6.
+var fs = require('fs');
+var pathlib = require('path');
 var assign = require('object-assign');
 var debug = require('debug')('keystone-s3');
 var ensureCallback = require('keystone-storage-namefunctions/ensureCallback');
-var knox = require('knox');
 var nameFunctions = require('keystone-storage-namefunctions');
-var pathlib = require('path');
+var S3 = require('aws-sdk/clients/s3');
 
 var DEFAULT_OPTIONS = {
 	key: process.env.S3_KEY,
 	secret: process.env.S3_SECRET,
 	bucket: process.env.S3_BUCKET,
 	region: process.env.S3_REGION || 'us-east-1',
+	path: '/',
 	generateFilename: nameFunctions.randomFilename,
+	uploadParams: {},
 };
+
+function ensureLeadingSlash (filename) {
+	return filename[0] !== '/' ? '/' + filename : filename;
+}
+
+function removeLeadingSlash (filename) {
+	return filename[0] === '/' ? filename.substring(1) : filename;
+}
+
+function encodeSpecialCharacters (filename) {
+	// Note: these characters are valid in URIs, but S3 does not like them for
+	// some reason.
+	return encodeURI(filename).replace(/[!'()#*+? ]/g, function (char) {
+		return '%' + char.charCodeAt(0).toString(16);
+	});
+}
 
 // This constructor is usually called indirectly by the Storage class
 // in keystone.
 
 // S3-specific options should be specified in an `options.s3` field,
 // which can contain the following options: { key, secret, bucket, region,
-// headers, path }.
+// path, uploadParams, publicUrl }.
 
 // The schema can contain the additional fields { path, bucket, etag }.
 
 // See README.md for details and usage examples.
 
 function S3Adapter (options, schema) {
+	var self = this;
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
-	// Support `defaultHeaders` option alias for `headers`
-	// TODO: Remove me with the next major version bump
-	if (this.options.defaultHeaders) {
-		this.options.headers = this.options.defaultHeaders;
-	}
+	// Check required options are set.
+	var requiredOptions = ['key', 'secret', 'bucket'];
+	requiredOptions.forEach(function (key) {
+		if (!self.options[key]) {
+			throw new Error('Configuration error: Missing required option `' + key + '`');
+		}
+	});
 
-	// Knox will check for the 'key', 'secret' and 'bucket' options.
-	this.client = knox.createClient(this.options);
+	// Check that `uploadParams` does not include any that we will be setting.
+	var restrictedPrams = ['Key', 'Body', 'Bucket', 'ContentType', 'ContentLength'];
+	Object.keys(this.options.uploadParams).forEach(function (key) {
+		if (restrictedPrams.indexOf(key) !== -1) {
+			throw new Error('Configuration error: `' + key + '` must not be set on `uploadParams`.');
+		}
+	});
 
-	// If path is specified it must be absolute.
-	if (options.path != null && !pathlib.isAbsolute(options.path)) {
-		throw Error('Configuration error: S3 path must be absolute');
-	}
+	// Ensure the path has a leading "/"
+	this.options.path = ensureLeadingSlash(this.options.path);
+
+	// Create the s3 client
+	this.s3Client = new S3({
+		accessKeyId: this.options.key,
+		secretAccessKey: this.options.secret,
+		region: this.options.region,
+	});
 
 	// Ensure the generateFilename option takes a callback
 	this.options.generateFilename = ensureCallback(this.options.generateFilename);
@@ -69,28 +101,29 @@ S3Adapter.SCHEMA_FIELD_DEFAULTS = {
 	etag: false,
 };
 
-// Return a knox client configured to interact with the specified file.
-S3Adapter.prototype._knoxForFile = function (file) {
-	// Clients are allowed to store the bucket name in the file structure. If they
-	// do it'll make it possible to have some files in one bucket and some files
-	// in another bucket. The knox client is configured per-bucket, so if you're
-	// using multiple buckets we'll need a different knox client for each file.
-	if (file.bucket && file.bucket !== this.options.bucket) {
-		var s3options = assign({}, this.options, { bucket: file.bucket });
-		return knox.createClient(s3options);
+S3Adapter.prototype._resolveBucket = function (file) {
+	if (file && file.bucket) {
+		return file.bucket;
 	} else {
-		return this.client;
+		return this.options.bucket;
 	}
 };
 
-// Get the full, absolute path name for the specified file.
-S3Adapter.prototype._resolveFilename = function (file) {
+S3Adapter.prototype._resolvePath = function (file) {
 	// Just like the bucket, the schema can store the path for files. If the path
 	// isn't stored we'll assume all the files are in the path specified in the
-	// s3.path option. If that doesn't exist we'll assume the file is in the root
-	// of the bucket. (Whew!)
-	var path = file.path || this.options.path || '/';
-	return pathlib.posix.join(path, file.filename);
+	// s3.path option which defaults to the root of the bucket.
+	const path = (file && file.path) || this.options.path;
+	// We still need to ensureLeadingSlash here as older versions of this
+	// adapter did not so there may be bad data for file.path in the DB.
+	return ensureLeadingSlash(path);
+};
+
+// Get the absolute path name for the specified file.
+S3Adapter.prototype._resolveAbsolutePath = function (file, shouldEncodePath) {
+	var path = this._resolvePath(file);
+	var filename = pathlib.posix.resolve(path, file.filename);
+	return shouldEncodePath ? encodeSpecialCharacters(filename) : filename;
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -100,31 +133,43 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 
 		// The expanded path of the file on the filesystem.
 		var localpath = file.path;
+		// Grab the mimetype so we can set ContentType in S3
+		var mimetype = file.mimetype;
+		// Grab the size so we can set ContentLength
+		var filesize = file.size;
 
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var destpath = self._resolveFilename(file);
+		var absolutePath = self._resolveAbsolutePath(file, false);
+		var bucket = self._resolveBucket();
 
-		// Figure out headers
-		var headers = assign({}, self.options.headers, {
-			'Content-Length': file.size,
-			'Content-Type': file.mimetype,
+		debug('Uploading file "%s" to "%s" bucket with mimetype "%s"', absolutePath, bucket, mimetype);
+
+		var fileStream = fs.createReadStream(localpath);
+		fileStream.on('error', function (err) {
+			if (err) return callback(err);
 		});
 
-		debug('Uploading file %s', filename);
-		self.client.putFile(localpath, destpath, headers, function (err, res) {
-			if (err) return callback(err);
-			if (res.statusCode !== 200) {
-				return callback(new Error('Amazon returned status code: ' + res.statusCode));
-			}
-			res.resume(); // Discard (empty) body.
+		var params = assign({
+			Key: removeLeadingSlash(absolutePath),
+			Body: fileStream,
+			Bucket: bucket,
+			ContentType: mimetype,
+			ContentLength: filesize,
+		}, self.options.uploadParams);
 
+		self.s3Client.upload(params, function (err, data) {
+			if (err) return callback(err);
 			// We'll annotate the file with a bunch of extra properties. These won't
 			// be saved in the database unless the corresponding schema options are
 			// set.
 			file.filename = filename;
-			file.etag = res.headers.etag; // TODO: This etag is double-quoted (??why?)
+			// NOTE: The etag is double-quoted. This is correct because an ETag
+			// according to the spec is either a quoted-string or W/ followed by
+			// a quoted-string (so, for example W/"asdf" is a valid etag).
+			// https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.11
+			file.etag = data.ETag;
 
 			// file.url is automatically populated by keystone's Storage class so we
 			// don't need to set it here.
@@ -138,7 +183,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 			file.path = self.options.path;
 			file.bucket = self.options.bucket;
 
-			debug('file upload successful');
+			debug('file upload successful %s', absolutePath);
 			callback(null, file);
 		});
 	});
@@ -147,24 +192,37 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // Note that this will provide a public URL for the file, but it will only
 // work if:
 // - the bucket is public (best) or
-// - the file is set to a canned ACL (ie, headers:{ 'x-amz-acl': 'public-read' } )
+// - the file is set to a canned ACL (ie, uploadParams:{ ACL: 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
-	// Consider providing an option to use insecure http. I can't think of any
-	// sensible use case for plain http though. https should be used everywhere.
-	return this._knoxForFile(file).https(this._resolveFilename(file));
+	var absolutePath = this._resolveAbsolutePath(file, true);
+	var path = this._resolvePath(file);
+	var bucket = this._resolveBucket(file);
+
+	if (typeof this.options.publicUrl === 'string') {
+		return this.options.publicUrl + absolutePath;
+	}
+	if (typeof this.options.publicUrl === 'function') {
+		file.path = path; // make sure path is available on the file
+		file.bucket = bucket; // make sure bucket is available on the file
+		return this.options.publicUrl(file);
+	}
+	return 'https://' + bucket + '.s3.amazonaws.com' + absolutePath;
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
-	var fullpath = this._resolveFilename(file);
-	this._knoxForFile(file).deleteFile(fullpath, function (err, res) {
+	var absolutePath = this._resolveAbsolutePath(file, true);
+	var bucket = this._resolveBucket(file);
+
+	debug('Removing file "%s" from "%s" bucket', absolutePath, bucket);
+
+	var params = {
+		Key: removeLeadingSlash(absolutePath),
+		Bucket: bucket,
+	};
+
+	this.s3Client.deleteObject(params, function (err, data) {
 		if (err) return callback(err);
-		// Deletes return 204 according to the spec, but we'll allow 200 too:
-		// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectDELETE.html
-		if (res.statusCode !== 200 && res.statusCode !== 204) {
-			return callback(Error('Amazon returned status code ' + res.statusCode));
-		}
-		res.resume(); // Discard the body
 		callback();
 	});
 };
@@ -172,12 +230,19 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 // Check if a file with the specified filename already exists. Callback called
 // with the file headers if the file exists, null otherwise.
 S3Adapter.prototype.fileExists = function (filename, callback) {
-	var fullpath = this._resolveFilename({ filename: filename });
-	this.client.headFile(fullpath, function (err, res) {
-		if (err) return callback(err);
+	var absolutePath = this._resolveAbsolutePath({ filename: filename }, true);
+	var bucket = this._resolveBucket();
 
-		if (res.statusCode === 404) return callback(); // File does not exist
-		callback(null, res.headers);
+	debug('Checking file exists "%s" in "%s" bucket', absolutePath, bucket);
+
+	var params = {
+		Key: removeLeadingSlash(absolutePath),
+		Bucket: bucket,
+	};
+
+	this.s3Client.getObject(params, function (err, data) {
+		if (err) return callback(err);
+		else callback(null, data);
 	});
 };
 
