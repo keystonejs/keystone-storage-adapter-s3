@@ -67,7 +67,7 @@ publicUrl: (file) => `https://xxxxxx.cloudfront.net${file.path}/${file.filename}
 - **generateFilename**: A function that accepts a file, a parameter and a callback to generate a strong pseudo-random 16 byte filename.
 
 ```js
-	generateFilename: (file, param, cb) => { cb(null, file.filename); }
+generateFilename: (file, param, cb) => { cb(null, file.filename); }
 ```
 
 ### Schema
