@@ -120,10 +120,10 @@ S3Adapter.prototype._resolvePath = function (file) {
 };
 
 // Get the absolute path name for the specified file.
-S3Adapter.prototype._resolveAbsolutePath = function (file) {
+S3Adapter.prototype._resolveAbsolutePath = function (file, shouldEncodePath) {
 	var path = this._resolvePath(file);
 	var filename = pathlib.posix.resolve(path, file.filename);
-	return encodeSpecialCharacters(filename);
+	return shouldEncodePath ? encodeSpecialCharacters(filename) : filename;
 };
 
 S3Adapter.prototype.uploadFile = function (file, callback) {
@@ -141,7 +141,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 		// The destination path inside the S3 bucket.
 		file.path = self.options.path;
 		file.filename = filename;
-		var absolutePath = self._resolveAbsolutePath(file);
+		var absolutePath = self._resolveAbsolutePath(file, false);
 		var bucket = self._resolveBucket();
 
 		debug('Uploading file "%s" to "%s" bucket with mimetype "%s"', absolutePath, bucket, mimetype);
@@ -195,7 +195,7 @@ S3Adapter.prototype.uploadFile = function (file, callback) {
 // - the file is set to a canned ACL (ie, uploadParams:{ ACL: 'public-read' } )
 // - you pass credentials during your request for the file content itself
 S3Adapter.prototype.getFileURL = function (file) {
-	var absolutePath = this._resolveAbsolutePath(file);
+	var absolutePath = this._resolveAbsolutePath(file, true);
 	var path = this._resolvePath(file);
 	var bucket = this._resolveBucket(file);
 
@@ -211,7 +211,7 @@ S3Adapter.prototype.getFileURL = function (file) {
 };
 
 S3Adapter.prototype.removeFile = function (file, callback) {
-	var absolutePath = this._resolveAbsolutePath(file);
+	var absolutePath = this._resolveAbsolutePath(file, true);
 	var bucket = this._resolveBucket(file);
 
 	debug('Removing file "%s" from "%s" bucket', absolutePath, bucket);
@@ -230,7 +230,7 @@ S3Adapter.prototype.removeFile = function (file, callback) {
 // Check if a file with the specified filename already exists. Callback called
 // with the file headers if the file exists, null otherwise.
 S3Adapter.prototype.fileExists = function (filename, callback) {
-	var absolutePath = this._resolveAbsolutePath({ filename: filename });
+	var absolutePath = this._resolveAbsolutePath({ filename: filename }, true);
 	var bucket = this._resolveBucket();
 
 	debug('Checking file exists "%s" in "%s" bucket', absolutePath, bucket);
