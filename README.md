@@ -59,19 +59,30 @@ The adapter requires an additional `s3` field added to the storage options. It a
 - **publicUrl**: Provide a custom domain to serve your S3 files from. This is useful if you are storing in S3 but reading through a CDN like Cloudfront. Provide either the domain as a `string` eg. `publicUrl: "https://xxxxxx.cloudfront.net"` or a function which takes a single parameter `file` and return the full public url to the file.
 
 Example with function:
+
 ```
 publicUrl: (file) => `https://xxxxxx.cloudfront.net${file.path}/${file.filename}`;
+```
+
+- **generateFilename**: A function that accepts a file, a parameter and a callback to generate a strong pseudo-random 16 byte filename.
+
+```js
+	generateFilename: (file, param, cb) => { cb(null, file.filename); }
 ```
 
 ### Schema
 
 The S3 adapter supports all the standard Keystone file schema fields. It also supports storing the following values per-file:
 
-- **bucket**, **path**: The bucket, and path within the bucket, for the file can be is stored in the database. If these are present when reading or deleting files, they will be used instead of looking at the adapter configuration. The effect of this is that you can have some (eg, old) files in your collection stored in different bucket / different path inside your bucket.
+- **bucket**: The bucket for the file to be stored in the database. If this is present when reading or deleting files, it will be used instead of looking at the adapter configuration. The effect of this is that you can have some (eg, old) files in your collection stored in different buckets.
 
-The main use of this is to allow slow data migrations. If you *don't* store these values you can arguably migrate your data more easily - just move it all, then reconfigure and restart your server.
+- **path**: The path within the bucket. If this is present when reading or deleting files, it will be used instead of looking at the adapter configuration. The effect of this is that you can have some (eg, old) files in your collection stored in different paths inside your bucket.
+
+The main use for both of these values is to allow slow data migrations. If you *don't* store these values you can arguably migrate your data more easily - just move it all, then reconfigure and restart your server.
 
 - **etag**: The etag of the stored item. This is equal to the MD5 sum of the file content.
+
+- **url**: The absolute URL path of the file located on s3.
 
 
 # Change Log
