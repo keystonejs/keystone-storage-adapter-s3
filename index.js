@@ -55,7 +55,8 @@ function S3Adapter (options, schema) {
 	this.options = assign({}, DEFAULT_OPTIONS, options.s3);
 
 	// Check required options are set.
-	var requiredOptions = ['key', 'secret', 'bucket'];
+	// If credentials are given using AWS web identity, key and secret are not needed.
+	var requiredOptions = process.env.AWS_WEB_IDENTITY_TOKEN_FILE ? ['bucket'] : ['key', 'secret', 'bucket'];
 	requiredOptions.forEach(function (key) {
 		if (!self.options[key]) {
 			throw new Error('Configuration error: Missing required option `' + key + '`');
