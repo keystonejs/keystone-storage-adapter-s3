@@ -1,3 +1,7 @@
+# 🚨 Deprecated 🚨
+
+This adapter only works with Keystone Classic (Keystone v4 and below). If you're using Keystone v5 or higher, please use the [S3 File Adapter](https://www.keystonejs.com/keystonejs/file-adapters/#s3fileadapter) instead.
+
 # S3-based storage adapter for KeystoneJS
 
 [![Build Status](https://travis-ci.org/keystonejs/keystone-storage-adapter-s3.svg?branch=master)](https://travis-ci.org/keystonejs/keystone-storage-adapter-s3)
