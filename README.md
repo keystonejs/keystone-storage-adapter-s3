@@ -1,3 +1,11 @@
+<div align="center">
+  <h1>⚠️ Archived</h1>
+  <p>This repository is archived and is no longer maintained.</p>
+  <p>For the latest Keystone release please visit <a href="https://keystonejs.com">the Keystone website.</a></p>
+  <hr>
+</div>
+<br>
+
 # 🚨 Deprecated 🚨
 
 This adapter only works with Keystone Classic (Keystone v4 and below). If you're using Keystone v5 or higher, please use the [S3 File Adapter](https://www.keystonejs.com/keystonejs/file-adapters/#s3fileadapter) instead.
