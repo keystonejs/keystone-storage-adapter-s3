@@ -23,6 +23,9 @@ Configure the storage adapter:
 ```js
 var storage = new keystone.Storage({
   adapter: require('keystone-storage-adapter-s3'),
+  generateFilename: function(file) {  // optional; generate custom file name
+    return file.originalname + '-uploaded-' + Date.now();
+  },
   s3: {
     key: 's3-key', // required; defaults to process.env.S3_KEY
     secret: 'secret', // required; defaults to process.env.S3_SECRET
