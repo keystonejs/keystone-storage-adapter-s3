@@ -43,10 +43,12 @@ describe('constructor', function () {
 		});
 
 		assert.deepEqual(adapter.options, {
+			endpoint: 'https://s3.amazonaws.com',
 			key: 'key',
 			secret: 'secret',
 			bucket: 'bucket',
 			region: 'us-east-1',
+			s3ForcePathStyle: false,
 			path: '/',
 			generateFilename: nameFunctions.randomFilename,
 			uploadParams: { ACL: 'public-read' },
@@ -83,25 +85,31 @@ describe('constructor', function () {
 describe('constructor with process.env vars', function () {
 	before(() => {
 		// Store
+		process.env.S3_ENDPOINT = 'env_endpoint';
 		process.env.S3_KEY = 'env_key';
 		process.env.S3_SECRET = 'env_secret';
 		process.env.S3_BUCKET = 'env_bucket';
 		process.env.S3_REGION = 'env_region';
+		process.env.S3_FORCEPATHSTYLE = 'env_pathstyle';
 	});
 	after(() => {
+		delete process.env.S3_ENDPOINT;
 		delete process.env.S3_KEY;
 		delete process.env.S3_SECRET;
 		delete process.env.S3_BUCKET;
 		delete process.env.S3_REGION;
+		delete process.env.S3_FORCEPATHSTYLE;
 	});
 	it('uses process.env variables if provided', function () {
 		const StubbedS3Adapter = proxyquire('../index', {});
 		const adapter = new StubbedS3Adapter({ s3: {} });
 		assert.deepEqual(adapter.options, {
+			endpoint: 'env_endpoint',
 			key: 'env_key',
 			secret: 'env_secret',
 			bucket: 'env_bucket',
 			region: 'env_region',
+			s3ForcePathStyle: 'env_pathstyle',
 			path: '/',
 			generateFilename: nameFunctions.randomFilename,
 			uploadParams: {},

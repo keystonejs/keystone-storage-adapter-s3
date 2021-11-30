@@ -24,12 +24,14 @@ Configure the storage adapter:
 var storage = new keystone.Storage({
   adapter: require('keystone-storage-adapter-s3'),
   s3: {
+    endpoint: 'https://xxxxxx.amazonaws.com', //optional; defaults to process.env.S3_ENDPOINT, or if that's not specified, https://s3.amazonaws.com as the generic endpoint
     key: 's3-key', // required; defaults to process.env.S3_KEY
     secret: 'secret', // required; defaults to process.env.S3_SECRET
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics', // optional; defaults to "/"
     publicUrl: "https://xxxxxx.cloudfront.net", // optional; sets a custom domain for public urls - see below for details
+    s3ForcePathStyle: true, //optional; defaults to false, if you use self hosted solutions like minio you probably want to set it to true
     uploadParams: { // optional; add S3 upload params; see below for details
       ACL: 'public-read',
     },
@@ -56,6 +58,8 @@ File.add({
 
 The adapter requires an additional `s3` field added to the storage options. It accepts the following values:
 
+- **endpoint**: Path for different S3 Endpoints, see possible [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) for options. You can also set your own minio, ec2, proxy path and more here.
+
 - **key**: *(required)* AWS access key. Configure your AWS credentials in the [IAM console](https://console.aws.amazon.com/iam/home).
 
 - **secret**: *(required)* AWS access secret.
@@ -67,6 +71,8 @@ The adapter requires an additional `s3` field added to the storage options. It a
 - **path**: Storage path inside the bucket. By default uploaded files will be stored in the root of the bucket. You can override this by specifying a base path here. Base path must be absolute, for example '/images/profilepics'.
 
 - **uploadParams**: Default params to pass to the AWS S3 client when uploading files. You can use these params to configure lots of additional properties and store (small) extra data about the files in S3 itself. See [AWS documentation](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property) for options. Examples: `{ ACL: "public-read" }` to override the bucket ACL and make all uploaded files globally readable.
+
+- **s3ForcePathStyle**: Whether to force path style URLs for S3 objects. Default is false, which will produce urls like: 'bucketname.amazonaws.com' which could lead to problems with proxies or selfhosted solutions.
 
 - **publicUrl**: Provide a custom domain to serve your S3 files from. This is useful if you are storing in S3 but reading through a CDN like Cloudfront. Provide either the domain as a `string` eg. `publicUrl: "https://xxxxxx.cloudfront.net"` or a function which takes a single parameter `file` and return the full public url to the file.
 
