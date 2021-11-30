@@ -81,7 +81,7 @@ function S3Adapter (options, schema) {
 	});
 
 	// Ensure the generateFilename option takes a callback
-	this.options.generateFilename = ensureCallback(this.options.generateFilename);
+	this.options.generateFilename = ensureCallback(options.generateFilename ? options.generateFilename : this.options.generateFilename);
 }
 
 S3Adapter.compatibilityLevel = 1;
