@@ -24,8 +24,8 @@ Configure the storage adapter:
 var storage = new keystone.Storage({
   adapter: require('keystone-storage-adapter-s3'),
   s3: {
-    key: 's3-key', // required; defaults to process.env.S3_KEY
-    secret: 'secret', // required; defaults to process.env.S3_SECRET
+    key: 's3-key', // required if not using IRSA (see below); defaults to process.env.S3_KEY
+    secret: 'secret', // required if not using IRSA; defaults to process.env.S3_SECRET
     bucket: 'mybucket', // required; defaults to process.env.S3_BUCKET
     region: 'ap-southeast-2', // optional; defaults to process.env.S3_REGION, or if that's not specified, us-east-1
     path: '/profilepics', // optional; defaults to "/"
@@ -56,9 +56,9 @@ File.add({
 
 The adapter requires an additional `s3` field added to the storage options. It accepts the following values:
 
-- **key**: *(required)* AWS access key. Configure your AWS credentials in the [IAM console](https://console.aws.amazon.com/iam/home).
+- **key**: *(required if not using IRSA)* AWS access key. Configure your AWS credentials in the [IAM console](https://console.aws.amazon.com/iam/home).
 
-- **secret**: *(required)* AWS access secret.
+- **secret**: *(required if not using IRSA)* AWS access secret.
 
 - **bucket**: *(required)* S3 bucket to upload files to. Bucket must be created before it can be used. Configure your bucket through the AWS console [here](https://console.aws.amazon.com/s3/home).
 
@@ -81,6 +81,15 @@ publicUrl: (file) => `https://xxxxxx.cloudfront.net${file.path}/${file.filename}
 ```js
 generateFilename: (file, param, cb) => { cb(null, file.filename); }
 ```
+
+### IAM Roles for Service Accounts (IRSA)
+
+Kubernetes clusters using the AWS EKS service offer an alternative way to authorize S3 operations called
+[IAM Roles for Service Accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
+Authorization information is passed in the environment variable AWS_WEB_IDENTITY_TOKEN_FILE, and *aws-sdk* knows
+how to use it if explicit credentials are not given.
+
+Options **key** and **secret** should not be given if IRSA is in use, and S3_KEY and S3_SECRET should not be set.
 
 ### Schema
 
